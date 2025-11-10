@@ -35,6 +35,7 @@ public class MoviesController : Controller
             Genre = movie.Genre,
             Duration = movie.Duration,
             PosterUrl = movie.PosterUrl,
+            TrailerUrl = movie.TrailerUrl,
             IsActive = movie.IsActive,
             Sessions = sessions.Select(s => new SessionViewModel
             {

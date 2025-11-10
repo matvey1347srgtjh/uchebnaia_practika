@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Редактировать фильм";
+    var trailerList = new SelectList(ViewData["TrailerFiles"] as List<string>);
+}
 }
 
 <div class="fade-in">
@@ -46,6 +48,17 @@
                         <input asp-for="PosterUrl" class="form-control" placeholder="URL постера" />
                         <span asp-validation-for="PosterUrl" class="text-danger"></span>
                     </div>
+
+                    <div class="mb-4">
+                    <label asp-for="TrailerUrl" class="form-label">Файл трейлера</label>
+                    <select asp-for="TrailerUrl" 
+                            class="form-select" 
+                            asp-items="@trailerList"> 
+                        <option value="">-- Не выбрано --</option>
+                    </select>
+                    <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+                    <small class="form-text text-warning">Список подгружается из папки "wwwroot/videos".</small>
+                </div>
                 </div>
 
                 <div class="mb-4">

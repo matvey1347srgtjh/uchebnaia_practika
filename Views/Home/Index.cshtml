@@ -17,17 +17,27 @@
         {
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="movie-card">
-                    <div class="movie-poster">
+                    <div class="movie-poster" style="position: relative;"> 
+                        
                         @if (!string.IsNullOrEmpty(movie.PosterUrl))
                         {
-                            <img src="@movie.PosterUrl" alt="@movie.Title">
+                            <img src="@movie.PosterUrl" alt="@movie.Title" class="movie-poster-image">
                         }
                         else
                         {
-                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            <div class="movie-poster-image" style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
                                 🎬
                             </div>
                         }
+                        
+                        @if (!string.IsNullOrEmpty(movie.TrailerUrl))
+                        {
+                            <video class="movie-trailer" 
+                                   src="@Url.Content($"~/videos/{movie.TrailerUrl}")" 
+                                   loop muted playsinline
+                                   style="display: none; width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"></video>
+                        }
+                        
                     </div>
                     <div class="movie-card-body">
                         <h5 class="movie-title">@movie.Title</h5>
@@ -55,4 +65,54 @@ else
         <h4>📽️ На данный момент нет фильмов в прокате</h4>
         <p class="mb-0">Скоро здесь появятся новые фильмы!</p>
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let hoverTimer;
+
+           
+            const movieCards = document.querySelectorAll('.movie-card');
+
+            movieCards.forEach(card => {
+               
+                const poster = card.querySelector('.movie-poster-image');
+                const video = card.querySelector('.movie-trailer');
+
+               
+                if (!video) {
+                    return;
+                }
+                
+               
+                card.addEventListener('mouseenter', () => {
+                   
+                    hoverTimer = setTimeout(() => {
+                        if (poster) {
+                            poster.style.display = 'none';
+                        }
+                        video.style.display = 'block';
+                        video.play().catch(error => {
+                            console.warn("Autoplay was prevented:", error);
+                        });
+                    }, 1000); 
+                });
+
+               
+                card.addEventListener('mouseleave', () => {
+                   
+                    clearTimeout(hoverTimer);
+
+                   
+                    video.pause();
+                    video.currentTime = 0;
+                    video.style.display = 'none';
+                    if (poster) {
+                        poster.style.display = 'block';
+                    }
+                });
+            });
+        });
+    </script>
 }

@@ -8,6 +8,7 @@ public class MovieViewModel
     public string Genre { get; set; } = string.Empty;
     public int Duration { get; set; }
     public string? PosterUrl { get; set; }
+    public string? TrailerUrl { get; set; }
     public bool IsActive { get; set; }
     public List<SessionViewModel> Sessions { get; set; } = new();
 }

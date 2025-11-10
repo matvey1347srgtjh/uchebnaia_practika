@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting; // 👈 ДОБАВЛЕНО
+using System.IO;                   // 👈 ДОБАВЛЕНО
+using System.Linq;                 // 👈 ДОБАВЛЕНО
 
 namespace CinemaApp.Controllers;
 
@@ -14,18 +17,40 @@ public class AdminController : Controller
     private readonly IHallRepository _hallRepository;
     private readonly ISessionRepository _sessionRepository;
     private readonly ILogger<AdminController> _logger;
+    private readonly IWebHostEnvironment _webHostEnvironment; // 👈 ДОБАВЛЕНО
 
     public AdminController(
         IMovieRepository movieRepository,
         IHallRepository hallRepository,
         ISessionRepository sessionRepository,
-        ILogger<AdminController> logger)
+        ILogger<AdminController> logger,
+        IWebHostEnvironment webHostEnvironment) // 👈 ИНЖЕКЦИЯ IWebHostEnvironment
     {
         _movieRepository = movieRepository;
         _hallRepository = hallRepository;
         _sessionRepository = sessionRepository;
         _logger = logger;
+        _webHostEnvironment = webHostEnvironment; // 👈 ИНИЦИАЛИЗАЦИЯ
     }
+
+    // Хелпер-метод для получения списка трейлеров
+    private List<string> GetAvailableTrailers()
+    {
+        var trailerPath = Path.Combine(_webHostEnvironment.WebRootPath, "videos");
+        
+        var trailers = Directory.Exists(trailerPath)
+            ? Directory.GetFiles(trailerPath)
+                       .Select(Path.GetFileName)
+                       .Where(f => f.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || 
+                                   f.EndsWith(".webm", StringComparison.OrdinalIgnoreCase))
+                       .ToList()
+            : new List<string>();
+
+        // Добавляем пустой элемент для опции "Не выбрано"
+
+        return trailers;
+    }
+
 
     // Movies CRUD
     public async Task<IActionResult> Movies()
@@ -34,8 +59,10 @@ public class AdminController : Controller
         return View(movies);
     }
 
+    // 👇 ОБНОВЛЕННЫЙ МЕТОД GET: Заполняем ViewData для выпадающего списка
     public IActionResult CreateMovie()
     {
+        ViewData["TrailerFiles"] = GetAvailableTrailers();
         return View();
     }
 
@@ -48,9 +75,13 @@ public class AdminController : Controller
             await _movieRepository.CreateAsync(movie);
             return RedirectToAction(nameof(Movies));
         }
+        
+        // Если валидация не прошла, снова заполняем ViewData
+        ViewData["TrailerFiles"] = GetAvailableTrailers();
         return View(movie);
     }
 
+    // 👇 ОБНОВЛЕННЫЙ МЕТОД GET: Заполняем ViewData для выпадающего списка
     public async Task<IActionResult> EditMovie(int id)
     {
         var movie = await _movieRepository.GetByIdAsync(id);
@@ -58,6 +89,9 @@ public class AdminController : Controller
         {
             return NotFound();
         }
+        
+        // Заполняем ViewData для выпадающего списка
+        ViewData["TrailerFiles"] = GetAvailableTrailers(); 
         return View(movie);
     }
 
@@ -75,6 +109,9 @@ public class AdminController : Controller
             await _movieRepository.UpdateAsync(movie);
             return RedirectToAction(nameof(Movies));
         }
+
+        // Если валидация не прошла, снова заполняем ViewData
+        ViewData["TrailerFiles"] = GetAvailableTrailers();
         return View(movie);
     }
 
@@ -291,4 +328,3 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Sessions));
     }
 }
-
