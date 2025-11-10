@@ -1,0 +1,61 @@
+@model CinemaApp.Models.Session
+
+@{
+    ViewData["Title"] = "Редактировать сеанс";
+    // Округляем до минут для datetime-local
+    var now = DateTime.Now;
+    var minDate = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0).ToString("yyyy-MM-ddTHH:mm");
+}
+
+<div class="fade-in">
+    <div class="mb-4">
+        <h2 class="mb-2">✏️ Редактировать сеанс</h2>
+        <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+    </div>
+
+    <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+        <div class="card-body p-4">
+            <form asp-action="EditSession" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
+                
+                <div class="mb-4">
+                    <label asp-for="MovieId" class="form-label"></label>
+                    <select asp-for="MovieId" class="form-control" asp-items="ViewBag.Movies">
+                    </select>
+                    <span asp-validation-for="MovieId" class="text-danger"></span>
+                </div>
+                
+                <div class="mb-4">
+                    <label asp-for="HallId" class="form-label"></label>
+                    <select asp-for="HallId" class="form-control" asp-items="ViewBag.Halls">
+                    </select>
+                    <span asp-validation-for="HallId" class="text-danger"></span>
+                </div>
+                
+                <div class="mb-4">
+                    <label asp-for="DateTime" class="form-label"></label>
+                    <input asp-for="DateTime" class="form-control" type="datetime-local" 
+                           min="@minDate" />
+                    <span asp-validation-for="DateTime" class="text-danger"></span>
+                </div>
+                
+                <div class="mb-4">
+                    <label asp-for="Price" class="form-label"></label>
+                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0.01" placeholder="Введите цену" />
+                    <span asp-validation-for="Price" class="text-danger"></span>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">✅ Сохранить</button>
+                    <a asp-action="Sessions" class="btn btn-secondary">❌ Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

@@ -1,0 +1,30 @@
+@model CinemaApp.Models.Hall
+
+@{
+    ViewData["Title"] = "Добавить зал";
+}
+
+<h2>Добавить зал</h2>
+
+<form asp-action="CreateHall" method="post">
+    <div class="form-group">
+        <label asp-for="Name" class="control-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Rows" class="control-label"></label>
+        <input asp-for="Rows" class="form-control" type="number" />
+        <span asp-validation-for="Rows" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="SeatsPerRow" class="control-label"></label>
+        <input asp-for="SeatsPerRow" class="form-control" type="number" />
+        <span asp-validation-for="SeatsPerRow" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Создать" class="btn btn-primary" />
+        <a asp-action="Halls" class="btn btn-secondary">Отмена</a>
+    </div>
+</form>
+

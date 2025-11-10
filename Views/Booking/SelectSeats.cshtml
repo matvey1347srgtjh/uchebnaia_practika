@@ -1,0 +1,242 @@
+@model CinemaApp.ViewModels.BookingViewModel
+
+@{
+    ViewData["Title"] = "Выбор мест";
+}
+
+<div class="fade-in">
+    <div class="mb-4">
+        <h2 class="mb-3">🎬 @Model.MovieTitle</h2>
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="badge" style="background: rgba(255,255,255,0.2); padding: 0.75rem 1.5rem; font-size: 1rem;">
+                🕐 @Model.SessionDateTime.ToString("dd.MM.yyyy HH:mm")
+            </div>
+            <div class="badge" style="background: rgba(255,255,255,0.2); padding: 0.75rem 1.5rem; font-size: 1rem;">
+                📍 @Model.HallName
+            </div>
+            <div class="badge" style="background: linear-gradient(135deg, var(--secondary-color), #ff9800); color: #000; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: bold;">
+                💰 @Model.Price.ToString("0.00") ₽ за место
+            </div>
+        </div>
+    </div>
+
+    <div class="seat-map-container">
+        <div class="text-center mb-4">
+            <div class="screen">
+                ЭКРАН
+            </div>
+        </div>
+
+        <div id="seatMap" class="seat-map mb-4">
+            @for (int row = 1; row <= Model.HallRows; row++)
+            {
+                <div class="seat-row">
+                    <div class="seat-label">Ряд @row</div>
+                    <div class="d-flex justify-content-center gap-1 flex-wrap">
+                        @for (int seat = 1; seat <= Model.HallSeatsPerRow; seat++)
+                        {
+                            var seatStatus = Model.Seats.FirstOrDefault(s => s.Row == row && s.SeatNumber == seat);
+                            var isAvailable = seatStatus?.IsAvailable ?? true;
+                            var isReserved = seatStatus?.IsReserved ?? false;
+                            var isSold = seatStatus?.IsSold ?? false;
+                            var seatId = $"{row}-{seat}";
+
+                            string seatClass = "seat btn btn-sm ";
+                            if (isSold)
+                            {
+                                seatClass += "btn-danger";
+                            }
+                            else if (isReserved)
+                            {
+                                seatClass += "btn-warning";
+                            }
+                            else
+                            {
+                                seatClass += "btn-success";
+                            }
+
+                            <button type="button" 
+                                    class="@seatClass" 
+                                    data-row="@row" 
+                                    data-seat="@seat"
+                                    data-seat-id="@seatId"
+                                    @(isSold || isReserved ? "disabled" : "")
+                                    onclick="selectSeat('@seatId', @isAvailable.ToString().ToLower())"
+                                    title="Ряд @row, Место @seat">
+                                @seat
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="seat-legend">
+            <div class="legend-item">
+                <div class="legend-seat btn-success"></div>
+                <span>Свободно</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat btn-warning"></div>
+                <span>Забронировано</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat btn-danger"></div>
+                <span>Занято</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-seat btn-primary"></div>
+                <span>Выбрано</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="selected-seats-info" id="selectedSeatsInfo" style="display: none;">
+        <h5 class="mb-3">🎫 Выбранные места:</h5>
+        <div id="selectedSeatsList" class="mb-3"></div>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <div class="total-price" id="totalPrice">Итого: 0 ₽</div>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary btn-lg me-2" id="reserveBtn" onclick="reserveSeats()" disabled>
+                    🔒 Забронировать
+                </button>
+                <button type="button" class="btn btn-success btn-lg" id="payBtn" onclick="confirmPayment()" style="display: none;">
+                    💳 Оплатить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="sessionId" value="@Model.SessionId" />
+<input type="hidden" id="pricePerSeat" value="@Model.Price" />
+<input type="hidden" id="reservedTicketIds" />
+
+@section Scripts {
+    <script>
+        let selectedSeats = [];
+        let reservedTicketIds = [];
+
+        function selectSeat(seatId, isAvailable) {
+            if (!isAvailable) {
+                return;
+            }
+
+            const index = selectedSeats.indexOf(seatId);
+            const seatButton = document.querySelector(`[data-seat-id="${seatId}"]`);
+            const selectedSeatsInfo = document.getElementById('selectedSeatsInfo');
+
+            if (index > -1) {
+                selectedSeats.splice(index, 1);
+                seatButton.classList.remove('btn-primary');
+                seatButton.classList.add('btn-success');
+            } else {
+                selectedSeats.push(seatId);
+                seatButton.classList.remove('btn-success');
+                seatButton.classList.add('btn-primary');
+            }
+
+            updateSelectedSeatsDisplay();
+            
+            if (selectedSeats.length > 0) {
+                selectedSeatsInfo.style.display = 'block';
+            } else {
+                selectedSeatsInfo.style.display = 'none';
+            }
+        }
+
+        function updateSelectedSeatsDisplay() {
+            const listDiv = document.getElementById('selectedSeatsList');
+            const totalPriceEl = document.getElementById('totalPrice');
+            const reserveBtn = document.getElementById('reserveBtn');
+            const pricePerSeat = parseFloat(document.getElementById('pricePerSeat').value);
+
+            if (selectedSeats.length === 0) {
+                listDiv.innerHTML = '<p class="text-muted">Места не выбраны</p>';
+                totalPriceEl.textContent = 'Итого: 0 ₽';
+                reserveBtn.disabled = true;
+            } else {
+                listDiv.innerHTML = selectedSeats.map(seat => {
+                    const [row, seatNum] = seat.split('-');
+                    return `<span class="badge me-2 mb-2" style="background: var(--primary-color); padding: 0.75rem 1rem; font-size: 1rem;">Ряд ${row}, Место ${seatNum}</span>`;
+                }).join('');
+                const total = selectedSeats.length * pricePerSeat;
+                totalPriceEl.textContent = `Итого: ${total.toFixed(2)} ₽`;
+                reserveBtn.disabled = false;
+            }
+        }
+
+        async function reserveSeats() {
+            if (selectedSeats.length === 0) {
+                alert('Выберите хотя бы одно место');
+                return;
+            }
+
+            const sessionId = document.getElementById('sessionId').value;
+
+            try {
+                const response = await fetch(`/Booking/ReserveSeats?sessionId=${sessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selectedSeats: selectedSeats })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    reservedTicketIds = result.ticketIds;
+                    document.getElementById('reservedTicketIds').value = reservedTicketIds.join(',');
+                    document.getElementById('reserveBtn').style.display = 'none';
+                    document.getElementById('payBtn').style.display = 'inline-block';
+                    alert('✅ Места успешно забронированы! У вас есть 5 минут для оплаты.');
+                } else {
+                    alert('❌ ' + (result.message || 'Ошибка при бронировании мест'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Произошла ошибка при бронировании');
+            }
+        }
+
+        async function confirmPayment() {
+            const ticketIdsStr = document.getElementById('reservedTicketIds').value;
+            if (!ticketIdsStr) {
+                alert('Нет забронированных билетов');
+                return;
+            }
+
+            const ticketIds = ticketIdsStr.split(',').map(id => parseInt(id));
+
+            try {
+                const response = await fetch('/Booking/ConfirmPayment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(ticketIds)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Оплата успешно подтверждена!');
+                    // Redirect to ticket page or profile
+                    if (result.tickets && result.tickets.length > 0) {
+                        window.location.href = `/Booking/Ticket/${result.tickets[0].id}`;
+                    } else {
+                        window.location.href = '/Account/Profile';
+                    }
+                } else {
+                    alert('❌ ' + (result.message || 'Ошибка при подтверждении оплаты'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Произошла ошибка при оплате');
+            }
+        }
+    </script>
+}

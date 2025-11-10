@@ -1,0 +1,64 @@
+@model IEnumerable<CinemaApp.Models.Hall>
+
+@{
+    ViewData["Title"] = "Управление залами";
+}
+
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-2">🪑 Управление залами</h2>
+            <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+        </div>
+        <a asp-action="CreateHall" class="btn btn-primary">
+            ➕ Добавить зал
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-dark table-hover" style="border-radius: 10px; overflow: hidden;">
+                <thead style="background: var(--dark-surface-light);">
+                    <tr>
+                        <th>Название</th>
+                        <th>Ряды</th>
+                        <th>Мест в ряду</th>
+                        <th>Всего мест</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.Name</strong></td>
+                            <td>@item.Rows</td>
+                            <td>@item.SeatsPerRow</td>
+                            <td>
+                                <span class="badge" style="background: linear-gradient(135deg, var(--secondary-color), #ff9800); color: #000;">
+                                    @(item.Rows * item.SeatsPerRow) мест
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a asp-action="EditHall" asp-route-id="@item.Id" class="btn btn-sm btn-warning">✏️ Редактировать</a>
+                                    <form asp-action="DeleteHall" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот зал?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Удалить</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <h5>🪑 Нет залов</h5>
+            <p class="mb-0">Начните с добавления первого зала!</p>
+        </div>
+    }
+</div>

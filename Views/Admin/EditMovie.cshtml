@@ -1,0 +1,69 @@
+@model CinemaApp.Models.Movie
+
+@{
+    ViewData["Title"] = "Редактировать фильм";
+}
+
+<div class="fade-in">
+    <div class="mb-4">
+        <h2 class="mb-2">✏️ Редактировать фильм</h2>
+        <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+    </div>
+
+    <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+        <div class="card-body p-4">
+            <form asp-action="EditMovie" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="Title" class="form-label"></label>
+                        <input asp-for="Title" class="form-control" placeholder="Название фильма" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="Genre" class="form-label"></label>
+                        <input asp-for="Genre" class="form-control" placeholder="Жанр" />
+                        <span asp-validation-for="Genre" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="5" placeholder="Описание фильма"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="Duration" class="form-label"></label>
+                        <input asp-for="Duration" class="form-control" type="number" placeholder="Продолжительность в минутах" />
+                        <span asp-validation-for="Duration" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label asp-for="PosterUrl" class="form-label"></label>
+                        <input asp-for="PosterUrl" class="form-control" placeholder="URL постера" />
+                        <span asp-validation-for="PosterUrl" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                        <label asp-for="IsActive" class="form-check-label">Активен (отображается в прокате)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                    <a asp-action="Movies" class="btn btn-secondary">❌ Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

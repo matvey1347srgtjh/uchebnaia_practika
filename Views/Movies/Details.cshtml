@@ -1,0 +1,86 @@
+@model CinemaApp.ViewModels.MovieViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="movie-detail-header mb-4 fade-in">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4 mb-4 mb-md-0">
+                @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                {
+                    <img src="@Model.PosterUrl" class="movie-detail-poster img-fluid w-100" alt="@Model.Title">
+                }
+                else
+                {
+                    <div class="movie-detail-poster img-fluid w-100" style="height: 500px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 5rem; border-radius: 15px;">
+                        🎬
+                    </div>
+                }
+            </div>
+            <div class="col-md-8">
+                <h1 class="mb-3">@Model.Title</h1>
+                <div class="mb-3">
+                    <span class="badge" style="background: linear-gradient(135deg, var(--secondary-color), #ff9800); color: #000; padding: 0.5rem 1rem; font-size: 1rem;">
+                        @Model.Genre
+                    </span>
+                    <span class="badge ms-2" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; font-size: 1rem;">
+                        ⏱️ @Model.Duration минут
+                    </span>
+                </div>
+                <p class="lead" style="color: var(--text-secondary); line-height: 1.8;">
+                    @Model.Description
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-5 fade-in">
+    <h2 class="mb-4">
+        <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
+            🎫 Ближайшие сеансы
+        </span>
+    </h2>
+    @if (Model.Sessions.Any())
+    {
+        <div class="row g-3">
+            @foreach (var session in Model.Sessions)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="session-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <div class="session-time">🕐 @session.DateTime.ToString("dd.MM.yyyy HH:mm")</div>
+                                <div class="text-muted mt-1">📍 @session.HallName</div>
+                            </div>
+                            <div class="session-price">@session.Price.ToString("0.00") ₽</div>
+                        </div>
+                        <div>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <a href="@Url.Action("SelectSeats", "Booking", new { sessionId = session.Id })" class="btn btn-primary w-100">
+                                    🪑 Выбрать места
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="@Url.Action("Login", "Account")" class="btn btn-secondary w-100">
+                                    🔑 Войти для бронирования
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <h5>📅 На данный момент нет доступных сеансов</h5>
+            <p class="mb-0">Сеансы появятся в ближайшее время!</p>
+        </div>
+    }
+</div>

@@ -1,0 +1,92 @@
+@model ProfileViewModel
+
+@{
+    ViewData["Title"] = "Профиль";
+}
+
+<div class="fade-in">
+    <div class="mb-5">
+        <h2 class="mb-3">👤 Профиль</h2>
+        <div style="height: 4px; width: 100px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+                <div class="card-body p-4">
+                    <h4 class="mb-4">📋 Информация о пользователе</h4>
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-3">
+                            <span style="font-size: 2rem; margin-right: 1rem;">👤</span>
+                            <div>
+                                <div class="text-muted" style="font-size: 0.9rem;">Имя</div>
+                                <div style="font-size: 1.2rem; font-weight: 600;">@(Model.User.FullName ?? Model.User.UserName)</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span style="font-size: 2rem; margin-right: 1rem;">📧</span>
+                            <div>
+                                <div class="text-muted" style="font-size: 0.9rem;">Email</div>
+                                <div style="font-size: 1.2rem; font-weight: 600;">@Model.User.Email</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <a asp-action="ChangePassword" class="btn btn-primary">
+                            🔐 Изменить пароль
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h4 class="mb-4">
+            <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
+                🎫 Мои билеты
+            </span>
+        </h4>
+        @if (Model.Tickets.Any())
+        {
+            <div class="row g-3">
+                @foreach (var ticket in Model.Tickets)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card session-card" style="border-radius: 15px;">
+                            <div class="card-body">
+                                <h5 class="mb-3">🎬 @ticket.Session.Movie.Title</h5>
+                                <div class="mb-2">
+                                    <small class="text-muted">🕐 Дата и время:</small><br>
+                                    <strong>@ticket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")</strong>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">📍 Зал:</small><br>
+                                    <strong>@ticket.Session.Hall.Name</strong>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">🪑 Место:</small><br>
+                                    <strong>Ряд @ticket.Row, Место @ticket.SeatNumber</strong>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted">🎟️ Код билета:</small><br>
+                                    <strong style="color: var(--primary-color); font-family: monospace;">@ticket.TicketCode</strong>
+                                </div>
+                                <a href="@Url.Action("Ticket", "Booking", new { id = ticket.Id })" class="btn btn-primary w-100">
+                                    Просмотр билета →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center">
+                <h5>🎫 У вас пока нет купленных билетов</h5>
+                <p class="mb-0">Начните с просмотра <a href="@Url.Action("Index", "Home")" style="color: var(--primary-color);">фильмов в прокате</a>!</p>
+            </div>
+        }
+    </div>
+</div>

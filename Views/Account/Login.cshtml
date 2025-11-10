@@ -1,0 +1,54 @@
+@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Вход";
+}
+
+<div class="row justify-content-center fade-in">
+    <div class="col-md-5">
+        <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h2 class="mb-3">🔑 Вход</h2>
+                    <div style="height: 4px; width: 80px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); margin: 0 auto; border-radius: 2px;"></div>
+                </div>
+
+                <form asp-action="Login" method="post">
+                    <div asp-validation-summary="All" class="alert alert-danger"></div>
+                    
+                    <div class="form-group mb-4">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" placeholder="Введите ваш email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" type="password" placeholder="Введите пароль" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-group mb-4">
+                        <div class="form-check">
+                            <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
+                            <label asp-for="RememberMe" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary w-100 mb-3">Войти</button>
+                        <div class="text-center">
+                            <a asp-action="Register" class="text-decoration-none" style="color: var(--text-secondary);">
+                                Нет аккаунта? <span style="color: var(--primary-color);">Зарегистрироваться</span>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

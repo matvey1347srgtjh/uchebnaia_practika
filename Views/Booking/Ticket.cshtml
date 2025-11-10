@@ -1,0 +1,95 @@
+@model CinemaApp.Models.Ticket
+
+@{
+    ViewData["Title"] = "Билет";
+}
+
+<div class="container fade-in">
+    <div class="ticket-card">
+        <div class="text-center mb-4">
+            <h1 class="mb-2">🎫 Электронный билет</h1>
+            <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); margin: 0 auto; border-radius: 2px;"></div>
+        </div>
+        
+        <div class="row align-items-center">
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="mb-4">
+                    <h3 class="mb-3">🎬 @Model.Session.Movie.Title</h3>
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">🕐</span>
+                            <div>
+                                <strong>Дата и время:</strong><br>
+                                <span style="color: var(--secondary-color); font-size: 1.1rem;">@Model.Session.DateTime.ToString("dd.MM.yyyy HH:mm")</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">📍</span>
+                            <div>
+                                <strong>Зал:</strong><br>
+                                <span style="color: var(--text-secondary);">@Model.Session.Hall.Name</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">🪑</span>
+                            <div>
+                                <strong>Место:</strong><br>
+                                <span style="color: var(--text-secondary);">Ряд @Model.Row, Место @Model.SeatNumber</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">💰</span>
+                            <div>
+                                <strong>Цена:</strong><br>
+                                <span style="color: var(--secondary-color); font-size: 1.2rem; font-weight: bold;">@Model.Price.ToString("0.00") ₽</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="mb-3">
+                    <h5 class="text-muted mb-3">Код билета</h5>
+                    <div class="ticket-code">@Model.TicketCode</div>
+                </div>
+                <div class="text-muted" style="font-size: 0.9rem;">
+                    Дата покупки: @Model.PurchaseDate.ToString("dd.MM.yyyy HH:mm")
+                </div>
+                <div class="mt-4">
+                    <div style="border: 2px dashed rgba(255,255,255,0.3); padding: 1rem; border-radius: 10px; background: rgba(255,255,255,0.05);">
+                        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎟️</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">Предъявите этот билет на входе</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="@Url.Action("Profile", "Account")" class="btn btn-primary me-2">
+                ← Вернуться в профиль
+            </a>
+            <button onclick="window.print()" class="btn btn-secondary">
+                🖨️ Печать
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style media="print">
+        body {
+            background: white;
+            color: black;
+        }
+        .ticket-card {
+            background: white;
+            border: 2px solid #000;
+        }
+        .btn {
+            display: none;
+        }
+        .navbar, .footer {
+            display: none;
+        }
+    </style>
+}

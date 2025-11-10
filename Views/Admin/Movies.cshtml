@@ -1,0 +1,71 @@
+@model IEnumerable<CinemaApp.Models.Movie>
+
+@{
+    ViewData["Title"] = "Управление фильмами";
+}
+
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-2">🎞️ Управление фильмами</h2>
+            <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+        </div>
+        <a asp-action="CreateMovie" class="btn btn-primary">
+            ➕ Добавить фильм
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-dark table-hover" style="border-radius: 10px; overflow: hidden;">
+                <thead style="background: var(--dark-surface-light);">
+                    <tr>
+                        <th>Название</th>
+                        <th>Жанр</th>
+                        <th>Продолжительность</th>
+                        <th>Активен</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.Title</strong></td>
+                            <td>
+                                <span class="badge" style="background: rgba(255,255,255,0.2);">@item.Genre</span>
+                            </td>
+                            <td>@item.Duration мин</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge" style="background: linear-gradient(135deg, #28a745, #20c997);">✓ Да</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(255,255,255,0.2);">✗ Нет</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a asp-action="EditMovie" asp-route-id="@item.Id" class="btn btn-sm btn-warning">✏️ Редактировать</a>
+                                    <form asp-action="DeleteMovie" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот фильм?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Удалить</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <h5>📽️ Нет фильмов</h5>
+            <p class="mb-0">Начните с добавления первого фильма!</p>
+        </div>
+    }
+</div>
