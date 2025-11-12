@@ -54,23 +54,26 @@
         @if (Model.ReservedTickets.Any())
         {
             @* Группируем билеты по SessionId, чтобы оплачивать всю бронь целиком *@
-          
-                var groupedReservedTickets = Model.ReservedTickets
-                    .GroupBy(t => t.Session.Id)
-                    .OrderBy(g => g.First().Session.DateTime);
             
-
+            var groupedReservedTickets = Model.ReservedTickets
+                .GroupBy(t => t.Session.Id)
+                .OrderBy(g => g.First().Session.DateTime);
+            
             <div class="row g-3">
                 @foreach (var group in groupedReservedTickets)
                 {
                     var firstTicket = group.First();
-                    // Собираем все ID билетов в этой группе для передачи в функцию оплаты
+                    // Используем ReservedUntil для JS таймера, преобразуя DateTime? в строку
+                    var reservedUntil = firstTicket.ReservedUntil.HasValue ? firstTicket.ReservedUntil.Value.ToString("o") : string.Empty;
+
                     var allTicketsInGroup = string.Join(",", group.Select(t => t.Id));
                     var totalTickets = group.Count();
                     var totalPrice = group.Sum(t => t.Price);
 
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card border-warning" style="border-radius: 15px;">
+                    <div class="col-md-6 col-lg-4" id="ticket-group-@firstTicket.Session.Id">
+                        <div class="card border-warning" 
+                                 style="border-radius: 15px;"
+                                 data-reserved-until="@reservedUntil">
                             <div class="card-body">
                                 <h5 class="mb-3 text-warning">🎬 @firstTicket.Session.Movie.Title <span class="badge bg-danger ms-2">БРОНЬ</span></h5>
                                 
@@ -91,14 +94,21 @@
                                     }
                                 </p>
 
+                                @* ----------------- НОВЫЙ ЭЛЕМЕНТ ТАЙМЕРА ----------------- *@
+                                <div class="alert alert-danger text-center p-2 mb-3">
+                                    <small class="d-block">⏳ Бронь истекает через:</small>
+                                    <strong class="reservation-timer" style="font-size: 1.2rem;">--:--</strong>
+                                </div>
+                                @* ----------------------------------------------------------- *@
+
                                 <div class="alert alert-warning text-center mt-3 p-2">
                                     <strong>Итого: @totalTickets мест, @totalPrice.ToString("0.00") ₽</strong>
                                 </div>
 
                                 <button type="button" 
-                                        class="btn btn-success w-100"
-                                        data-ticket-ids="@allTicketsInGroup"
-                                        onclick="confirmPaymentFromProfile(this)">
+                                            class="btn btn-success w-100"
+                                            data-ticket-ids="@allTicketsInGroup"
+                                            onclick="confirmPaymentFromProfile(this)">
                                     💳 Оплатить (@totalPrice.ToString("0.00") ₽)
                                 </button>
                                 
@@ -175,10 +185,76 @@
 </div>
 
 @* ------------------------------------------------------------------------------------------------------ *@
-@* --- СКРИПТЫ: Функция оплаты (копирование логики с SelectSeats) --- *@
+@* --- СКРИПТЫ: Функция оплаты и Таймер обратного отсчета --- *@
 @* ------------------------------------------------------------------------------------------------------ *@
 @section Scripts {
     <script>
+        // Функция для форматирования времени (mm:ss)
+        function formatTime(milliseconds) {
+            if (milliseconds < 0) return "00:00";
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Функция обновления всех таймеров
+        function updateAllTimers() {
+            let activeTimers = false;
+            
+            document.querySelectorAll('.card[data-reserved-until]').forEach(card => {
+                const expirationTimeStr = card.getAttribute('data-reserved-until');
+                const timerDisplay = card.querySelector('.reservation-timer');
+
+                if (!expirationTimeStr || !timerDisplay) return;
+
+                const expirationTime = new Date(expirationTimeStr).getTime();
+                const now = new Date().getTime();
+                const distance = expirationTime - now;
+
+                if (distance > 0) {
+                    // Время еще не истекло
+                    timerDisplay.textContent = formatTime(distance);
+                    activeTimers = true;
+                    // Окрашиваем таймер в красный, когда остается меньше 1 минуты
+                    if (distance < 60000) {
+                        timerDisplay.closest('.alert').classList.add('bg-danger', 'text-white');
+                        timerDisplay.closest('.alert').classList.remove('alert-danger');
+                    }
+                } else {
+                    // Время истекло
+                    timerDisplay.textContent = "ИСТЕКЛО";
+                    
+                    // Скрываем карточку и перезагружаем страницу
+                    const colParent = card.closest('.col-md-6.col-lg-4');
+                    if (colParent) {
+                        colParent.style.opacity = '0';
+                        colParent.style.transition = 'opacity 1s';
+                        setTimeout(() => {
+                            colParent.style.display = 'none';
+                            // Перезагрузка, чтобы контроллер обновил список
+                            window.location.reload(); 
+                        }, 1000); 
+                    }
+                }
+            });
+
+            // Если есть активные таймеры, продолжаем цикл, иначе останавливаем
+            if (activeTimers) {
+                setTimeout(updateAllTimers, 1000);
+            } else if (document.querySelectorAll('.card[data-reserved-until]').length > 0) {
+                // Если нет активных таймеров, но были карточки, перезагружаем страницу сразу
+                 setTimeout(() => {
+                    window.location.reload(); 
+                 }, 500); 
+            }
+        }
+
+        // Запускаем таймеры при загрузке страницы
+        window.addEventListener('load', updateAllTimers);
+
+
+        // Логика оплаты (оставлена без изменений)
         async function confirmPaymentFromProfile(buttonElement) {
             const ticketIdsStr = buttonElement.getAttribute('data-ticket-ids');
             if (!ticketIdsStr) {
@@ -186,16 +262,16 @@
                 return;
             }
 
-            // Блокируем кнопку и меняем текст
+            
             const initialText = buttonElement.textContent;
             buttonElement.disabled = true;
             buttonElement.textContent = 'Обработка...';
 
-            // Преобразуем строку ID в массив чисел
+            
             const ticketIds = ticketIdsStr.split(',').map(id => parseInt(id));
 
             try {
-                // Вызываем тот же метод контроллера, что и на странице выбора мест
+                
                 const response = await fetch('/Booking/ConfirmPayment', {
                     method: 'POST',
                     headers: {
@@ -208,23 +284,23 @@
 
                 if (result.success) {
                     alert('✅ Оплата успешно подтверждена! Билет сгенерирован.');
-                    // Перенаправление на страницу первого оплаченного билета
+                    
                     if (result.tickets && result.tickets.length > 0) {
                         window.location.href = `/Booking/Ticket/${result.tickets[0].id}`;
                     } else {
-                        // Если билеты не вернулись, обновляем профиль
+                        
                         window.location.href = '/Account/Profile';
                     }
                 } else {
                     alert('❌ ' + (result.message || 'Ошибка при подтверждении оплаты.'));
                     
-                    // Возвращаем кнопку в исходное состояние
+                    
                     buttonElement.disabled = false;
                     buttonElement.textContent = initialText;
                     
-                    // Обновляем страницу, если бронь истекла
+                    
                     if (result.message && (result.message.includes('истекла') || result.message.includes('не найдена'))) {
-                         window.location.reload();
+                        window.location.reload();
                     }
                 }
             } catch (error) {
