@@ -13,6 +13,12 @@ public class MovieRepository : IMovieRepository
         _context = context;
     }
 
+    private static bool ContainsInsensitive(string? source, string value)
+    {
+        return !string.IsNullOrEmpty(source)
+               && source.IndexOf(value, StringComparison.CurrentCultureIgnoreCase) >= 0;
+    }
+
     public async Task<IEnumerable<Movie>> GetAllAsync()
     {
         return await _context.Movies.ToListAsync();
@@ -50,10 +56,92 @@ public class MovieRepository : IMovieRepository
         }
     }
 
-    public async Task<IEnumerable<Movie>> GetActiveMoviesAsync()
+    public async Task<IEnumerable<Movie>> GetActiveMoviesAsync(string? searchQuery = null, string? genre = null, int? minDuration = null, int? maxDuration = null)
+    {
+        var movies = await _context.Movies
+            .Where(m => m.IsActive)
+            .ToListAsync();
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var term = searchQuery.Trim();
+            movies = movies
+                .Where(m => ContainsInsensitive(m.Title, term)
+                            || ContainsInsensitive(m.Genre, term)
+                            || ContainsInsensitive(m.Description, term))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(genre))
+        {
+            var normalizedGenre = genre.Trim();
+            movies = movies
+                .Where(m => ContainsInsensitive(m.Genre, normalizedGenre))
+                .ToList();
+        }
+
+        if (minDuration.HasValue)
+        {
+            movies = movies
+                .Where(m => m.Duration >= minDuration.Value)
+                .ToList();
+        }
+
+        if (maxDuration.HasValue)
+        {
+            movies = movies
+                .Where(m => m.Duration <= maxDuration.Value)
+                .ToList();
+        }
+
+        return movies
+            .OrderBy(m => m.Title)
+            .ToList();
+    }
+
+    public async Task<(IEnumerable<Movie> Active, IEnumerable<Movie> Others)> GetSearchSuggestionsAsync(string searchQuery, int activeLimit = 5, int otherLimit = 5)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            return (Enumerable.Empty<Movie>(), Enumerable.Empty<Movie>());
+        }
+
+        var term = searchQuery.Trim();
+
+        var activeMatches = await _context.Movies
+            .Where(m => m.IsActive)
+            .ToListAsync();
+
+        activeMatches = activeMatches
+            .Where(m => ContainsInsensitive(m.Title, term)
+                        || ContainsInsensitive(m.Genre, term)
+                        || ContainsInsensitive(m.Description, term))
+            .OrderBy(m => m.Title)
+            .Take(activeLimit)
+            .ToList();
+
+        var otherMatches = await _context.Movies
+            .Where(m => !m.IsActive)
+            .ToListAsync();
+
+        otherMatches = otherMatches
+            .Where(m => ContainsInsensitive(m.Title, term)
+                        || ContainsInsensitive(m.Genre, term)
+                        || ContainsInsensitive(m.Description, term))
+            .OrderBy(m => m.Title)
+            .Take(otherLimit)
+            .ToList();
+
+        return (activeMatches, otherMatches);
+    }
+
+    public async Task<IReadOnlyList<string>> GetGenresAsync()
     {
         return await _context.Movies
-            .Where(m => m.IsActive)
+            .Select(m => m.Genre)
+            .Where(g => !string.IsNullOrEmpty(g))
+            .Distinct()
+            .OrderBy(g => g)
             .ToListAsync();
     }
 }

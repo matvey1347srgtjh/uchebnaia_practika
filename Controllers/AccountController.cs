@@ -2,8 +2,12 @@ using CinemaApp.Models;
 using CinemaApp.Repositories;
 using CinemaApp.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
+using System.Linq;
 
 namespace CinemaApp.Controllers;
 
@@ -12,15 +16,20 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITicketRepository _ticketRepository;
+    private readonly IWebHostEnvironment _environment;
 
+    private static readonly string[] _permittedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    private const long MaxAvatarSizeBytes = 5 * 1024 * 1024; // 5 MB
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ITicketRepository ticketRepository)
+        ITicketRepository ticketRepository,
+        IWebHostEnvironment environment)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _ticketRepository = ticketRepository;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -129,6 +138,135 @@ public async Task<IActionResult> Profile()
 
     return View(viewModel);
 }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateAvatar(IFormFile? avatar)
+    {
+        if (avatar == null || avatar.Length == 0)
+        {
+            TempData["AvatarError"] = "Выберите изображение для загрузки.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        if (avatar.Length > MaxAvatarSizeBytes)
+        {
+            TempData["AvatarError"] = "Файл слишком большой. Максимальный размер — 5 МБ.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var extension = Path.GetExtension(avatar.FileName).ToLowerInvariant();
+        if (!_permittedExtensions.Contains(extension))
+        {
+            TempData["AvatarError"] = "Допустимые форматы: JPG, PNG, GIF, WEBP.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            TempData["AvatarError"] = "Не удалось определить пользователя.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        var safeFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsFolder, safeFileName);
+
+        await using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await avatar.CopyToAsync(stream);
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.AvatarPath))
+        {
+            var existingPath = Path.Combine(_environment.WebRootPath, user.AvatarPath.TrimStart(Path.DirectorySeparatorChar, '/').Replace('/', Path.DirectorySeparatorChar));
+            if (System.IO.File.Exists(existingPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(existingPath);
+                }
+                catch
+                {
+                    // Игнорируем ошибки удаления
+                }
+            }
+        }
+
+        user.AvatarPath = $"/uploads/avatars/{safeFileName}";
+        await _userManager.UpdateAsync(user);
+
+        TempData["AvatarSuccess"] = "Аватар успешно обновлён.";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(ProfileUpdateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ProfileError"] = "Не удалось обновить данные. Проверьте введённую информацию.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var hasChanges = false;
+
+        if (!string.Equals(user.FullName, model.FullName, StringComparison.Ordinal))
+        {
+            user.FullName = model.FullName;
+            hasChanges = true;
+        }
+
+        if (!string.Equals(user.PhoneNumber, model.PhoneNumber, StringComparison.Ordinal))
+        {
+            user.PhoneNumber = model.PhoneNumber;
+            hasChanges = true;
+        }
+
+        if (!string.Equals(user.UserName, model.UserName, StringComparison.Ordinal))
+        {
+            user.UserName = model.UserName;
+            hasChanges = true;
+        }
+
+        if (!string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.Email = model.Email;
+            user.NormalizedEmail = _userManager.NormalizeEmail(model.Email);
+            hasChanges = true;
+        }
+
+        if (!hasChanges)
+        {
+            TempData["ProfileNotice"] = "Изменений не обнаружено.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            TempData["ProfileError"] = string.Join(" ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(Profile));
+        }
+
+        TempData["ProfileSuccess"] = "Данные профиля обновлены.";
+        return RedirectToAction(nameof(Profile));
+    }
 
     [Authorize]
     [HttpGet]

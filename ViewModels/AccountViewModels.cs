@@ -67,3 +67,22 @@ public class ProfileViewModel
     public List<Ticket> ReservedTickets { get; set; } = new();
 }
 
+public class ProfileUpdateViewModel
+{
+    [Required(ErrorMessage = "Укажите имя")] 
+    [StringLength(100)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Укажите email")] 
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Phone]
+    [Display(Name = "Телефон")]
+    public string? PhoneNumber { get; set; }
+
+    [Required(ErrorMessage = "Укажите логин")]
+    [StringLength(50)]
+    public string UserName { get; set; } = string.Empty;
+}
+ 

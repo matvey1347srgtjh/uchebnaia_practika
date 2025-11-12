@@ -2,194 +2,248 @@
 
 @{
     ViewData["Title"] = "Профиль";
+    var nameSource = Model.User.FullName;
+    if (string.IsNullOrWhiteSpace(nameSource))
+    {
+        nameSource = Model.User.Email ?? Model.User.UserName;
+    }
+
+    var avatarInitial = !string.IsNullOrWhiteSpace(nameSource)
+        ? char.ToUpperInvariant(nameSource.Trim()[0]).ToString()
+        : "?";
+
+    var totalWatched = Model.Tickets.Count(t => t.Status == TicketStatus.Sold);
+    var totalReserved = Model.ReservedTickets.Count;
 }
 
-<div class="fade-in">
-    <div class="mb-5">
-        <h2 class="mb-3">👤 Профиль</h2>
-        <div style="height: 4px; width: 100px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
-    </div>
+<div class="profile-page">
+    @if (TempData["AvatarSuccess"] is string successMessage)
+    {
+        <div class="alert alert-success mb-4">@successMessage</div>
+    }
+    @if (TempData["AvatarError"] is string errorMessage)
+    {
+        <div class="alert alert-danger mb-4">@errorMessage</div>
+    }
+    @if (TempData["ProfileSuccess"] is string profileSuccess)
+    {
+        <div class="alert alert-success mb-4">@profileSuccess</div>
+    }
+    @if (TempData["ProfileError"] is string profileError)
+    {
+        <div class="alert alert-danger mb-4">@profileError</div>
+    }
+    @if (TempData["ProfileNotice"] is string profileNotice)
+    {
+        <div class="alert alert-secondary mb-4">@profileNotice</div>
+    }
 
-    <div class="row mb-5">
-        <div class="col-md-6">
-            <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
-                <div class="card-body p-4">
-                    <h4 class="mb-4">📋 Информация о пользователе</h4>
-                    <div class="mb-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <span style="font-size: 2rem; margin-right: 1rem;">👤</span>
-                            <div>
-                                <div class="text-muted" style="font-size: 0.9rem;">Имя</div>
-                                <div style="font-size: 1.2rem; font-weight: 600;">@(Model.User.FullName ?? Model.User.UserName)</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span style="font-size: 2rem; margin-right: 1rem;">📧</span>
-                            <div>
-                                <div class="text-muted" style="font-size: 0.9rem;">Email</div>
-                                <div style="font-size: 1.2rem; font-weight: 600;">@Model.User.Email</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <a asp-action="ChangePassword" class="btn btn-primary">
-                            🔐 Изменить пароль
-                        </a>
-                    </div>
-                </div>
+    <div class="card border-0 shadow-sm mb-4 profile-hero profile-hero--light">
+        <div class="card-body text-center p-4">
+            <div class="profile-avatar-wrapper">
+                <button type="button" class="profile-avatar profile-avatar--gradient rounded-circle" id="avatarTrigger" aria-label="Изменить аватар">
+                    @if (!string.IsNullOrWhiteSpace(Model.User.AvatarPath))
+                    {
+                        <img src="@Model.User.AvatarPath" alt="Аватар" class="rounded-circle" />
+                    }
+                    else
+                    {
+                        <span>@avatarInitial</span>
+                    }
+                    <span class="profile-avatar__overlay"><i class="bi bi-pencil"></i></span>
+                </button>
             </div>
+
+            <h2 class="fw-bold mb-2">@nameSource</h2>
+            <p class="mb-4 text">@Model.User.Email</p>
+
+            <div class="d-flex justify-content-center flex-wrap gap-2">
+                <button type="button" class="btn btn-dark rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#profileEditModal">
+                    <i class="bi bi-pencil-square me-1"></i>Изменить данные
+                </button>
+            </div>
+
+            <form asp-action="UpdateAvatar" method="post" enctype="multipart/form-data" class="d-none" id="avatar-upload-form">
+                <input class="form-control" type="file" id="avatar" name="avatar" accept="image/*" onchange="document.getElementById('avatar-upload-form').submit();" />
+            </form>
         </div>
     </div>
 
-    @* ------------------------------------------------------------------------------------------------------ *@
-    @* --- НОВАЯ СЕКЦИЯ: ЗАБРОНИРОВАННЫЕ БИЛЕТЫ --- *@
-    @* ------------------------------------------------------------------------------------------------------ *@
-    
-    <div class="mt-5">
-        <h4 class="mb-4">
-            <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
-                ⏳ Забронированные билеты
-            </span>
-        </h4>
-        @if (Model.ReservedTickets.Any())
-        {
-            @* Группируем билеты по SessionId, чтобы оплачивать всю бронь целиком *@
-            
-            var groupedReservedTickets = Model.ReservedTickets
-                .GroupBy(t => t.Session.Id)
-                .OrderBy(g => g.First().Session.DateTime);
-            
-            <div class="row g-3">
-                @foreach (var group in groupedReservedTickets)
+    <div class="tab-content" id="profileTabContent">
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+            <section class="mb-5">
+                <div class="d-flex align-items-center mb-3">
+                    <h3 class="h5 fw-semibold mb-0 text-white">Забронированные билеты</h3>
+                    <span class="badge bg-warning text-dark ms-3">@totalReserved</span>
+                </div>
+
+                @if (Model.ReservedTickets.Any())
                 {
-                    var firstTicket = group.First();
-                    // Используем ReservedUntil для JS таймера, преобразуя DateTime? в строку
-                    var reservedUntil = firstTicket.ReservedUntil.HasValue ? firstTicket.ReservedUntil.Value.ToString("o") : string.Empty;
+                    var groupedReservedTickets = Model.ReservedTickets
+                        .GroupBy(t => t.Session.Id)
+                        .OrderBy(g => g.First().Session.DateTime);
 
-                    var allTicketsInGroup = string.Join(",", group.Select(t => t.Id));
-                    var totalTickets = group.Count();
-                    var totalPrice = group.Sum(t => t.Price);
+                    <div class="row g-4">
+                        @foreach (var group in groupedReservedTickets)
+                        {
+                            var firstTicket = group.First();
+                            var reservedUntil = firstTicket.ReservedUntil.HasValue ? firstTicket.ReservedUntil.Value.ToString("o") : string.Empty;
+                            var allTicketsInGroup = string.Join(",", group.Select(t => t.Id));
+                            var totalTickets = group.Count();
+                            var totalPrice = group.Sum(t => t.Price);
 
-                    <div class="col-md-6 col-lg-4" id="ticket-group-@firstTicket.Session.Id">
-                        <div class="card border-warning" 
-                                 style="border-radius: 15px;"
-                                 data-reserved-until="@reservedUntil">
-                            <div class="card-body">
-                                <h5 class="mb-3 text-warning">🎬 @firstTicket.Session.Movie.Title <span class="badge bg-danger ms-2">БРОНЬ</span></h5>
-                                
-                                <div class="mb-2">
-                                    <small class="text-muted">🕐 Дата и время:</small><br>
-                                    <strong>@firstTicket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")</strong>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="card h-100 border-0 shadow-sm reservation-card bg-dark text-white" data-reserved-until="@reservedUntil">
+                                    <div class="card-body d-flex flex-column">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <h4 class="h6 mb-0 text-white">@firstTicket.Session.Movie.Title</h4>
+                                            <span class="badge rounded-pill bg-danger">Бронь</span>
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi bi-calendar-event me-1"></i>@firstTicket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")
+                                        </p>
+                                        <p class="text-muted small mb-3">
+                                            <i class="bi би-geo-alt me-1"></i>@firstTicket.Session.Hall.Name
+                                        </p>
+
+                                        <div class="mb-3">
+                                            <div class="fw-semibold text-uppercase text-muted small mb-2">Ваши места</div>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var ticket in group.OrderBy(t => t.Row).ThenBy(t => t.SeatNumber))
+                                                {
+                                                    <span class="badge bg-secondary">Ряд @ticket.Row, Место @ticket.SeatNumber</span>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-danger py-2 text-center mb-3 reservation-timer-wrapper">
+                                            <small class="d-block text-uppercase text-muted fw-semibold">Бронь истекает через</small>
+                                            <span class="reservation-timer fs-5 fw-bold text-white">--:--</span>
+                                        </div>
+
+                                        <div class="bg-secondary-subtle border border-secondary rounded-3 p-3 mb-3 text-center text-dark">
+                                            <div class="fw-semibold mb-1">@totalTickets мест</div>
+                                            <div class="fs-5 fw-bold">@totalPrice.ToString("0.00") ₽</div>
+                                        </div>
+
+                                        <button type="button"
+                                                class="btn btn-success rounded-pill w-100 mt-auto"
+                                                data-ticket-ids="@allTicketsInGroup"
+                                                onclick="confirmPaymentFromProfile(this)">
+                                            <i class="bi bi-credit-card me-1"></i>Оплатить
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
-                                    <small class="text-muted">📍 Зал:</small><br>
-                                    <strong>@firstTicket.Session.Hall.Name</strong>
-                                </div>
-                                
-                                <h6 class="mt-3 mb-2">🪑 Ваши места:</h6>
-                                <p class="text-break" style="font-size: 0.9rem;">
-                                    @foreach (var ticket in group.OrderBy(t => t.Row).ThenBy(t => t.SeatNumber))
-                                    {
-                                        <span class="badge bg-secondary me-1 mb-1">Ряд @ticket.Row, Место @ticket.SeatNumber</span>
-                                    }
-                                </p>
-
-                                @* ----------------- НОВЫЙ ЭЛЕМЕНТ ТАЙМЕРА ----------------- *@
-                                <div class="alert alert-danger text-center p-2 mb-3">
-                                    <small class="d-block">⏳ Бронь истекает через:</small>
-                                    <strong class="reservation-timer" style="font-size: 1.2rem;">--:--</strong>
-                                </div>
-                                @* ----------------------------------------------------------- *@
-
-                                <div class="alert alert-warning text-center mt-3 p-2">
-                                    <strong>Итого: @totalTickets мест, @totalPrice.ToString("0.00") ₽</strong>
-                                </div>
-
-                                <button type="button" 
-                                            class="btn btn-success w-100"
-                                            data-ticket-ids="@allTicketsInGroup"
-                                            onclick="confirmPaymentFromProfile(this)">
-                                    💳 Оплатить (@totalPrice.ToString("0.00") ₽)
-                                </button>
-                                
-                                <small class="text-muted d-block text-center mt-2">
-                                    Бронь активна в течение ограниченного времени.
-                                </small>
                             </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="card border-0 shadow-sm bg-dark text-white">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-hourglass-split display-6 text-secondary mb-3"></i>
+                            <h4 class="h5 mb-2 text-white">Нет активных бронирований</h4>
+                            <p class="text-secondary mb-0">Посмотрите актуальные сеансы и забронируйте места прямо сейчас.</p>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-light rounded-pill px-4 mt-3">Перейти к афише</a>
                         </div>
                     </div>
                 }
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-secondary text-center">
-                <h5>⏳ Нет активных бронирований.</h5>
-                <p class="mb-0">Начните с просмотра <a href="@Url.Action("Index", "Home")" style="color: var(--secondary-color);">фильмов в прокате</a>!</p>
-            </div>
-        }
-    </div>
-    
-    @* ------------------------------------------------------------------------------------------------------ *@
-    @* --- Секция КУПЛЕННЫЕ БИЛЕТЫ (Ваш оригинальный код) --- *@
-    @* ------------------------------------------------------------------------------------------------------ *@
+            </section>
 
-    <div class="mt-5">
-        <h4 class="mb-4">
-            <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
-                🎫 Мои билеты
-            </span>
-        </h4>
-        @if (Model.Tickets.Any())
-        {
-            <div class="row g-3">
-                @foreach (var ticket in Model.Tickets)
+            <section>
+                <div class="d-flex align-items-center mb-3">
+                    <h3 class="h5 fw-semibold mb-0 text-white">Мои билеты</h3>
+                    <span class="badge bg-primary ms-3">@totalWatched</span>
+                </div>
+
+                @if (Model.Tickets.Any())
                 {
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card session-card" style="border-radius: 15px;">
-                            <div class="card-body">
-                                <h5 class="mb-3">🎬 @ticket.Session.Movie.Title</h5>
-                                <div class="mb-2">
-                                    <small class="text-muted">🕐 Дата и время:</small><br>
-                                    <strong>@ticket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")</strong>
+                    <div class="row g-4">
+                        @foreach (var ticket in Model.Tickets)
+                        {
+                            <div class="col-sm-6 col-xl-4">
+                                <div class="card h-100 border-0 shadow-sm session-card bg-dark text-white">
+                                    <div class="card-body d-flex flex-column">
+                                        <h4 class="h6 mb-2 text-white">@ticket.Session.Movie.Title</h4>
+                                        <p class="text-muted small mb-2">
+                                            <i class="bi би-calendar-event me-1"></i>@ticket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")
+                                        </p>
+                                        <p class="text-muted small mb-3">
+                                            <i class="bi би-geo-alt me-1"></i>@ticket.Session.Hall.Name
+                                        </p>
+                                        <div class="mb-3">
+                                            <div class="fw-semibold text-uppercase text-muted small mb-1">Ваше место</div>
+                                            <div class="badge bg-dark-subtle text-dark fw-semibold">Ряд @ticket.Row, Место @ticket.SeatNumber</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="fw-semibold text-uppercase text-muted small mb-1">Код билета</div>
+                                            <div class="fs-5 fw-bold" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;">@ticket.TicketCode</div>
+                                        </div>
+                                        <a href="@Url.Action("Ticket", "Booking", new { id = ticket.Id })" class="btn btn-outline-light rounded-pill mt-auto">Открыть билет</a>
+                                    </div>
                                 </div>
-                                <div class="mb-2">
-                                    <small class="text-muted">📍 Зал:</small><br>
-                                    <strong>@ticket.Session.Hall.Name</strong>
-                                </div>
-                                <div class="mb-2">
-                                    <small class="text-muted">🪑 Место:</small><br>
-                                    <strong>Ряд @ticket.Row, Место @ticket.SeatNumber</strong>
-                                </div>
-                                <div class="mb-3">
-                                    <small class="text-muted">🎟️ Код билета:</small><br>
-                                    <strong style="color: var(--primary-color); font-family: monospace;">@ticket.TicketCode</strong>
-                                </div>
-                                <a href="@Url.Action("Ticket", "Booking", new { id = ticket.Id })" class="btn btn-primary w-100">
-                                    Просмотр билета →
-                                </a>
                             </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="card border-0 shadow-sm bg-dark text-white">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-ticket-perforated display-6 text-secondary mb-3"></i>
+                            <h4 class="h5 mb-2">У вас пока нет купленных билетов</h4>
+                            <p class="text-secondary mb-0">Выберите фильм, забронируйте места и получите электронный билет.</p>
+                            <a asp-controller="Home" asp-action="Index" asp-fragment="movies" class="btn btn-outline-light rounded-pill px-4 mt-3">Выбрать фильм</a>
                         </div>
                     </div>
                 }
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-info text-center">
-                <h5>🎫 У вас пока нет купленных билетов</h5>
-                <p class="mb-0">Начните с просмотра <a href="@Url.Action("Index", "Home")" style="color: var(--primary-color);">фильмов в прокате</a>!</p>
-            </div>
-        }
+            </section>
+        </div>
     </div>
 </div>
 
-@* ------------------------------------------------------------------------------------------------------ *@
-@* --- СКРИПТЫ: Функция оплаты и Таймер обратного отсчета --- *@
-@* ------------------------------------------------------------------------------------------------------ *@
+<div class="modal fade" id="profileEditModal" tabindex="-1" aria-labelledby="profileEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="profileEditModalLabel">Изменить данные</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <form asp-action="UpdateProfile" method="post">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editFullName" class="form-label">Полное имя</label>
+                            <input type="text" class="form-control" id="editFullName" name="FullName" value="@Model.User.FullName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" name="Email" value="@Model.User.Email" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editPhone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="editPhone" name="PhoneNumber" value="@Model.User.PhoneNumber" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editUserName" class="form-label">Логин</label>
+                            <input type="text" class="form-control" id="editUserName" name="UserName" value="@Model.User.UserName" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отменить</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        // Функция для форматирования времени (mm:ss)
         function formatTime(milliseconds) {
             if (milliseconds < 0) return "00:00";
             const totalSeconds = Math.floor(milliseconds / 1000);
@@ -198,63 +252,40 @@
             return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
-        // Функция обновления всех таймеров
         function updateAllTimers() {
             let activeTimers = false;
-            
-            document.querySelectorAll('.card[data-reserved-until]').forEach(card => {
+
+            document.querySelectorAll('.reservation-card').forEach(card => {
                 const expirationTimeStr = card.getAttribute('data-reserved-until');
                 const timerDisplay = card.querySelector('.reservation-timer');
 
-                if (!expirationTimeStr || !timerDisplay) return;
+                if (!expirationTimeStr || !timerDisplay) {
+                    return;
+                }
 
                 const expirationTime = new Date(expirationTimeStr).getTime();
                 const now = new Date().getTime();
                 const distance = expirationTime - now;
 
                 if (distance > 0) {
-                    // Время еще не истекло
                     timerDisplay.textContent = formatTime(distance);
                     activeTimers = true;
-                    // Окрашиваем таймер в красный, когда остается меньше 1 минуты
                     if (distance < 60000) {
-                        timerDisplay.closest('.alert').classList.add('bg-danger', 'text-white');
-                        timerDisplay.closest('.alert').classList.remove('alert-danger');
+                        card.querySelector('.reservation-timer-wrapper')?.classList.add('bg-danger', 'text-white');
                     }
                 } else {
-                    // Время истекло
                     timerDisplay.textContent = "ИСТЕКЛО";
-                    
-                    // Скрываем карточку и перезагружаем страницу
-                    const colParent = card.closest('.col-md-6.col-lg-4');
-                    if (colParent) {
-                        colParent.style.opacity = '0';
-                        colParent.style.transition = 'opacity 1s';
-                        setTimeout(() => {
-                            colParent.style.display = 'none';
-                            // Перезагрузка, чтобы контроллер обновил список
-                            window.location.reload(); 
-                        }, 1000); 
-                    }
+                    card.classList.add('opacity-50');
                 }
             });
 
-            // Если есть активные таймеры, продолжаем цикл, иначе останавливаем
             if (activeTimers) {
                 setTimeout(updateAllTimers, 1000);
-            } else if (document.querySelectorAll('.card[data-reserved-until]').length > 0) {
-                // Если нет активных таймеров, но были карточки, перезагружаем страницу сразу
-                 setTimeout(() => {
-                    window.location.reload(); 
-                 }, 500); 
             }
         }
 
-        // Запускаем таймеры при загрузке страницы
         window.addEventListener('load', updateAllTimers);
 
-
-        // Логика оплаты (оставлена без изменений)
         async function confirmPaymentFromProfile(buttonElement) {
             const ticketIdsStr = buttonElement.getAttribute('data-ticket-ids');
             if (!ticketIdsStr) {
@@ -262,16 +293,13 @@
                 return;
             }
 
-            
-            const initialText = buttonElement.textContent;
+            const initialText = buttonElement.innerHTML;
             buttonElement.disabled = true;
-            buttonElement.textContent = 'Обработка...';
+            buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработка...';
 
-            
             const ticketIds = ticketIdsStr.split(',').map(id => parseInt(id));
 
             try {
-                
                 const response = await fetch('/Booking/ConfirmPayment', {
                     method: 'POST',
                     headers: {
@@ -284,21 +312,15 @@
 
                 if (result.success) {
                     alert('✅ Оплата успешно подтверждена! Билет сгенерирован.');
-                    
                     if (result.tickets && result.tickets.length > 0) {
                         window.location.href = `/Booking/Ticket/${result.tickets[0].id}`;
                     } else {
-                        
                         window.location.href = '/Account/Profile';
                     }
                 } else {
                     alert('❌ ' + (result.message || 'Ошибка при подтверждении оплаты.'));
-                    
-                    
                     buttonElement.disabled = false;
-                    buttonElement.textContent = initialText;
-                    
-                    
+                    buttonElement.innerHTML = initialText;
                     if (result.message && (result.message.includes('истекла') || result.message.includes('не найдена'))) {
                         window.location.reload();
                     }
@@ -307,8 +329,28 @@
                 console.error('Error:', error);
                 alert('❌ Произошла ошибка при оплате.');
                 buttonElement.disabled = false;
-                buttonElement.textContent = initialText;
+                buttonElement.innerHTML = initialText;
             }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+
+        const avatarTrigger = document.getElementById('avatarTrigger');
+        const avatarInput = document.getElementById('avatar');
+        if (avatarTrigger && avatarInput) {
+            const triggerClick = (event) => {
+                event.preventDefault();
+                avatarInput.click();
+            };
+
+            avatarTrigger.addEventListener('click', triggerClick);
+            avatarTrigger.querySelectorAll('.profile-avatar__overlay, .profile-avatar__overlay i').forEach(el => {
+                el.addEventListener('click', triggerClick);
+            });
         }
     </script>
 }

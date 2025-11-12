@@ -7,7 +7,7 @@
 <div class="fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-2">📅 Управление сеансами</h2>
+            <h2 class="mb-2">Управление сеансами</h2>
             <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
         </div>
         <a asp-action="CreateSession" class="btn btn-primary">
@@ -40,9 +40,9 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a asp-action="EditSession" asp-route-id="@item.Id" class="btn btn-sm btn-warning">✏️ Редактировать</a>
+                                    <a asp-action="EditSession" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Редактировать</a>
                                     <form asp-action="DeleteSession" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот сеанс?');">
-                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Удалить</button>
+                                        <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
                                     </form>
                                 </div>
                             </td>
@@ -55,7 +55,7 @@
     else
     {
         <div class="alert alert-info text-center">
-            <h5>📅 Нет сеансов</h5>
+            <h5>Нет сеансов</h5>
             <p class="mb-0">Начните с добавления первого сеанса!</p>
         </div>
     }

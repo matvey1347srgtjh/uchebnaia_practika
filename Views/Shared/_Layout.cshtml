@@ -6,6 +6,7 @@
     <title>@ViewData["Title"] - Кинотеатр</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -15,67 +16,175 @@
         }
     </style>
 </head>
+@using CinemaApp.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject CinemaApp.Repositories.IMovieRepository MovieRepository
+@{
+    ApplicationUser? currentUser = null;
+    string? userInitial = null;
+    IReadOnlyList<string>? allGenres = ViewData["Genres"] as IReadOnlyList<string>;
+    if (allGenres is null || allGenres.Count == 0)
+    {
+        allGenres = await MovieRepository.GetGenresAsync();
+    }
+    string? selectedGenre = ViewData["SelectedGenre"] as string;
+    string? minDurationValue = ViewData["MinDuration"]?.ToString();
+    string? maxDurationValue = ViewData["MaxDuration"]?.ToString();
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        currentUser = await UserManager.GetUserAsync(User);
+        var nameSource = currentUser?.FullName;
+        if (string.IsNullOrWhiteSpace(nameSource))
+        {
+            nameSource = currentUser?.Email ?? currentUser?.UserName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(nameSource))
+        {
+            var firstChar = nameSource.Trim()[0];
+            userInitial = char.ToUpperInvariant(firstChar).ToString();
+        }
+    }
+}
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+    <header class="kp-header">
+        <div class="container kp-header__inner">
+            <div class="kp-header__left">
+                <a class="kp-logo" asp-area="" asp-controller="Home" asp-action="Index">
                     🎬 Cinema
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+                <a class="kp-nav-link" asp-controller="Home" asp-action="Index">Главная</a>
+                <a class="kp-nav-link" asp-controller="Home" asp-action="Index" asp-fragment="tickets">Билеты в кино</a>
+                <a class="kp-nav-link" asp-controller="Home" asp-action="About">О нас</a>
+            </div>
+            <form class="kp-search" method="get" asp-area="" asp-controller="Home" asp-action="Index" autocomplete="off" data-suggestions-url="@Url.Action("SearchSuggestions", "Home")">
+                <span class="kp-search__icon">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </span>
+                <input type="search" name="query" class="kp-search__input" placeholder="Фильмы, сериалы" autocomplete="off" value="@Context.Request.Query["query"]" />
+                <button type="button" class="kp-search__filter" title="Фильтры" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
                 </button>
-                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-house"></i> Главная
+                <button type="submit" class="kp-search__submit" title="Найти">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 11.5C4 15.0899 6.91015 18 10.5 18C11.7578 18 12.9247 17.6545 13.9075 17.0567L18 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M10.5 16C7.73858 16 5.5 13.7614 5.5 11C5.5 8.23858 7.73858 6 10.5 6C13.2614 6 15.5 8.23858 15.5 11C15.5 13.7614 13.2614 16 10.5 16Z" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </button>
+                <div class="kp-search__suggestions d-none" id="searchSuggestions" role="listbox" aria-label="Подсказки поиска"></div>
+                <div class="kp-search__filters d-none" id="searchFilters">
+                    <div class="kp-search__filters-header">
+                        <div>
+                            <div class="kp-search__filters-title">Фильтры</div>
+                            <div class="kp-search__filters-subtitle">Уточните параметры поиска</div>
+                        </div>
+                        <button type="button" class="kp-search__filters-close" aria-label="Закрыть фильтры">×</button>
+                    </div>
+                    <div class="kp-search__filters-body">
+                        <div class="kp-search__filters-group">
+                            <label for="filter-genre">Жанр</label>
+                            <select id="filter-genre" name="genre" class="form-select">
+                                <option value="">Все жанры</option>
+                                @foreach (var genre in allGenres)
+                                {
+                                    <option value="@genre" selected="@(string.Equals(selectedGenre, genre, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@genre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="kp-search__filters-group">
+                            <label>Длительность (мин)</label>
+                            <div class="kp-search__filters-range">
+                                <input type="number" name="minDuration" placeholder="От" value="@minDurationValue" min="0" class="form-control" />
+                                <span class="kp-search__filters-divider">—</span>
+                                <input type="number" name="maxDuration" placeholder="До" value="@maxDurationValue" min="0" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kp-search__filters-actions">
+                        <button type="button" class="btn btn-outline-secondary kp-search__filters-clear">Сбросить</button>
+                        <button type="submit" class="btn btn-primary">Показать</button>
+                    </div>
+                </div>
+            </form>
+            <div class="kp-header__right">
+                <div class="kp-user">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="kp-user__menu">
+                            <a class="kp-user__avatar" asp-controller="Account" asp-action="Profile" title="Профиль">
+                                @if (!string.IsNullOrWhiteSpace(currentUser?.AvatarPath))
+                                {
+                                    <img src="@currentUser.AvatarPath" alt="Аватар" />
+                                }
+                                else if (!string.IsNullOrWhiteSpace(userInitial))
+                                {
+                                    <span>@userInitial</span>
+                                }
+                                else
+                                {
+                                    <span>?</span>
+                                }
                             </a>
-                        </li>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    ⚙️ Администрирование
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Movies">🎞️ Фильмы</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Halls">🪑 Залы</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Sessions">📅 Сеансы</a></li>
+                            <div class="kp-user__dropdown">
+                                <div class="kp-user__dropdown-header">
+                                    <div class="kp-user__dropdown-avatar">
+                                        @if (!string.IsNullOrWhiteSpace(currentUser?.AvatarPath))
+                                        {
+                                            <img src="@currentUser.AvatarPath" alt="Аватар" />
+                                        }
+                                        else if (!string.IsNullOrWhiteSpace(userInitial))
+                                        {
+                                            <span>@userInitial</span>
+                                        }
+                                        else
+                                        {
+                                            <span>?</span>
+                                        }
+                                    </div>
+                                    <div>
+                                        <div class="kp-user__dropdown-name">@((currentUser?.FullName)?.Trim() ?? currentUser?.Email ?? currentUser?.UserName)</div>
+                                        @if (!string.IsNullOrWhiteSpace(currentUser?.Email))
+                                        {
+                                            <div class="kp-user__dropdown-email">@currentUser.Email</div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="kp-user__dropdown-divider"></div>
+                                <ul class="kp-user__dropdown-list">
+                                    <li><a asp-controller="Account" asp-action="Profile">Мой профиль</a></li>
+                                    <li><a asp-controller="Home" asp-action="Index" asp-fragment="movies">Фильмы</a></li>
+                                    <li><a asp-controller="Home" asp-action="Index" asp-fragment="tickets">Сеансы</a></li>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li class="dropdown-header">Администрирование</li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Movies">Фильмы</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Halls">Залы</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Sessions">Сеансы</a></li>
+                                    }
                                 </ul>
-                            </li>
-                        }
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Profile">
-                                    👤 Профиль
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-link nav-link" style="border: none; background: none; color: inherit;">
-                                        🚪 Выход
-                                    </button>
+                                <div class="kp-user__dropdown-divider"></div>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="kp-user__dropdown-logout">
+                                    <button type="submit">Выйти</button>
                                 </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">🔑 Вход</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Register">📝 Регистрация</a>
-                            </li>
-                        }
-                    </ul>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="kp-user__auth" asp-controller="Account" asp-action="Login">Войти</a>
+                        <a class="kp-user__auth kp-user__auth--highlight" asp-controller="Account" asp-action="Register">Регистрация</a>
+                    }
                 </div>
             </div>
-        </nav>
+        </div>
     </header>
     <div class="container fade-in">
         <main role="main" class="pb-3">
