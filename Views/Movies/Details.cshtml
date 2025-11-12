@@ -5,38 +5,38 @@
 }
 
 <style>
-    /* 1. КОНТЕЙНЕР ДЛЯ ГРАДИЕНТА (ОХВАТЫВАЕТ ТОЛЬКО ПОСТЕР И ИНФО) */
+    
     .info-and-poster-container {
-        /* Еле видный КРАСНЫЙ градиент (справа налево) */
+        
         background: linear-gradient(
-            to left, /* Направление: Справа налево */
-            rgba(255, 0, 0, 0.1), /* Начало: Полупрозрачный красный */
+            to left, 
+            rgba(255, 0, 0, 0.1), 
             rgba(255, 255, 255, 0.05)
-             /* Конец: Очень светлый/почти прозрачный */
+             
         );
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
-        margin-bottom: 30px; /* Отступ до плеера */
-        padding: 20px; /* Внутренний отступ */
+        margin-bottom: 30px; 
+        padding: 20px; 
     }
     
-    /* Основной контейнер страницы, чтобы добавить отступ сверху */
+    
     .fade-in {
         padding-top: 30px; 
     }
 
-    /* Адаптивный контейнер для видео: ВАШЕ ЗНАЧЕНИЕ 52.5% */
+    
     .trailer-responsive-container {
         position: relative; 
         width: 100%; 
-        padding-bottom: 52.5%; /* ИДЕАЛЬНОЕ ЗНАЧЕНИЕ */
+        padding-bottom: 52.5%; 
         height: 0; 
         overflow: hidden; 
-        margin-bottom: 40px; /* Отступ до сеансов */
+        margin-bottom: 40px; 
         
         background: black; 
         border-radius: 5px; 
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Тень для плеера */
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); 
     }
     
     .trailer-responsive-container video {
@@ -48,7 +48,7 @@
         object-fit: cover;
     }
 
-    /* Значок запуска в центре */
+    
     .play-center-icon {
         position: absolute;
         top: 50%;
@@ -74,7 +74,7 @@
         background-color: rgba(128, 128, 128, 0.7);
     }
 
-    /* Стиль для постера */
+    
     .movie-poster-image-details {
         width: 100%;
         height: 100%;
@@ -85,23 +85,23 @@
         border-radius: 0.375rem; 
     }
     
-    /* Стиль для микронадписей */
+    
     .text-metadata {
         color: #6c757d !important; 
         font-weight: 500; 
     }
 
-    /* СЕТКА (GRID) - ТОЛЬКО ДЛЯ ВЕРХНЕГО РЯДА */
+    
     .main-info-grid {
         display: grid;
-        grid-template-columns: 1fr 2fr; /* 1 часть для постера, 2 для инфо/описания */
+        grid-template-columns: 1fr 2fr; 
         gap: 30px;
         align-items: start;
     }
     
     .poster-column {
         grid-column: 1 / 2;
-        min-height: 400px; /* Уменьшаем минимальную высоту, так как плеер ушел */
+        min-height: 400px; 
         display: flex; 
         align-items: center;
         justify-content: center;
@@ -111,7 +111,7 @@
         grid-column: 2 / 3;
     }
 
-    /* --- СТИЛИ ДЛЯ СЕАНСОВ (СОХРАНЕНЫ) --- */
+    
     .session-card {
         padding: 20px;
         border-radius: 10px;
@@ -134,7 +134,7 @@
         color: #ffc107 !important; 
     }
 
-    /* Медиа-запросы для мобильных устройств */
+    
     @@media (max-width: 768px) {
         .main-info-grid {
             grid-template-columns: 1fr;
@@ -259,25 +259,25 @@
 
             if (!video) return; 
 
-            // Обработчик клика по центральному значку Play
+            
             playCenterIcon.addEventListener('click', () => {
                 video.muted = false; 
                 video.play();
             });
 
-            // Событие: видео начало воспроизводиться
+            
             video.addEventListener('play', () => {
                 playCenterIcon.style.opacity = '0'; 
                 playCenterIcon.style.pointerEvents = 'none'; 
             });
 
-            // Событие: видео поставлено на паузу
+            
             video.addEventListener('pause', () => {
                 playCenterIcon.style.opacity = '1'; 
                 playCenterIcon.style.pointerEvents = 'auto'; 
             });
 
-            // Запускаем видео на минимальной громкости, когда оно готово, чтобы избежать проблем с автовоспроизведением
+            
             video.addEventListener('loadeddata', () => {
                 video.volume = 0.5; 
                 video.muted = true; 

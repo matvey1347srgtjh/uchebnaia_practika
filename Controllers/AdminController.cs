@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Hosting; // 👈 ДОБАВЛЕНО
-using System.IO;                   // 👈 ДОБАВЛЕНО
-using System.Linq;                 // 👈 ДОБАВЛЕНО
+using Microsoft.AspNetCore.Hosting; 
+using System.IO;                   
+using System.Linq;                 
 
 namespace CinemaApp.Controllers;
 
@@ -17,23 +17,23 @@ public class AdminController : Controller
     private readonly IHallRepository _hallRepository;
     private readonly ISessionRepository _sessionRepository;
     private readonly ILogger<AdminController> _logger;
-    private readonly IWebHostEnvironment _webHostEnvironment; // 👈 ДОБАВЛЕНО
+    private readonly IWebHostEnvironment _webHostEnvironment; 
 
     public AdminController(
         IMovieRepository movieRepository,
         IHallRepository hallRepository,
         ISessionRepository sessionRepository,
         ILogger<AdminController> logger,
-        IWebHostEnvironment webHostEnvironment) // 👈 ИНЖЕКЦИЯ IWebHostEnvironment
+        IWebHostEnvironment webHostEnvironment) 
     {
         _movieRepository = movieRepository;
         _hallRepository = hallRepository;
         _sessionRepository = sessionRepository;
         _logger = logger;
-        _webHostEnvironment = webHostEnvironment; // 👈 ИНИЦИАЛИЗАЦИЯ
+        _webHostEnvironment = webHostEnvironment; 
     }
 
-    // Хелпер-метод для получения списка трейлеров
+    
     private List<string> GetAvailableTrailers()
     {
         var trailerPath = Path.Combine(_webHostEnvironment.WebRootPath, "videos");
@@ -46,20 +46,20 @@ public class AdminController : Controller
                        .ToList()
             : new List<string>();
 
-        // Добавляем пустой элемент для опции "Не выбрано"
+        
 
         return trailers;
     }
 
 
-    // Movies CRUD
+    
     public async Task<IActionResult> Movies()
     {
         var movies = await _movieRepository.GetAllAsync();
         return View(movies);
     }
 
-    // 👇 ОБНОВЛЕННЫЙ МЕТОД GET: Заполняем ViewData для выпадающего списка
+    
     public IActionResult CreateMovie()
     {
         ViewData["TrailerFiles"] = GetAvailableTrailers();
@@ -76,12 +76,12 @@ public class AdminController : Controller
             return RedirectToAction(nameof(Movies));
         }
         
-        // Если валидация не прошла, снова заполняем ViewData
+        
         ViewData["TrailerFiles"] = GetAvailableTrailers();
         return View(movie);
     }
 
-    // 👇 ОБНОВЛЕННЫЙ МЕТОД GET: Заполняем ViewData для выпадающего списка
+    
     public async Task<IActionResult> EditMovie(int id)
     {
         var movie = await _movieRepository.GetByIdAsync(id);
@@ -90,7 +90,7 @@ public class AdminController : Controller
             return NotFound();
         }
         
-        // Заполняем ViewData для выпадающего списка
+        
         ViewData["TrailerFiles"] = GetAvailableTrailers(); 
         return View(movie);
     }
@@ -110,7 +110,7 @@ public class AdminController : Controller
             return RedirectToAction(nameof(Movies));
         }
 
-        // Если валидация не прошла, снова заполняем ViewData
+        
         ViewData["TrailerFiles"] = GetAvailableTrailers();
         return View(movie);
     }
@@ -123,7 +123,7 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Movies));
     }
 
-    // Halls CRUD
+    
     public async Task<IActionResult> Halls()
     {
         var halls = await _hallRepository.GetAllAsync();
@@ -182,7 +182,7 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Halls));
     }
 
-    // Sessions CRUD
+    
     public async Task<IActionResult> Sessions()
     {
         var sessions = await _sessionRepository.GetAllAsync();
@@ -197,7 +197,7 @@ public class AdminController : Controller
         ViewBag.Movies = new SelectList(movies, "Id", "Title", 0);
         ViewBag.Halls = new SelectList(halls, "Id", "Name", 0);
 
-        // Округляем до минут, так как datetime-local не поддерживает секунды
+        
         var now = DateTime.Now;
         var session = new Session
         {
@@ -211,11 +211,11 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateSession(Session session)
     {
-        // Логируем полученные значения для отладки
+        
         _logger.LogInformation("CreateSession POST: MovieId={MovieId}, HallId={HallId}, DateTime={DateTime}, Price={Price}",
             session.MovieId, session.HallId, session.DateTime, session.Price);
 
-        // Дополнительная проверка на уровне контроллера
+        
         if (session.MovieId == 0)
         {
             ModelState.AddModelError(nameof(session.MovieId), "Выберите фильм");
@@ -234,14 +234,14 @@ public class AdminController : Controller
             }
             catch (Exception ex)
             {
-                // Логируем ошибку
+                
                 _logger.LogError(ex, "Ошибка при создании сеанса");
                 
                 ModelState.AddModelError("", "Произошла ошибка при создании сеанса. Попробуйте еще раз.");
             }
         }
 
-        // Если валидация не прошла, логируем ошибки
+        
         if (!ModelState.IsValid)
         {
             foreach (var error in ModelState)
@@ -300,7 +300,7 @@ public class AdminController : Controller
             }
         }
 
-        // Если валидация не прошла, логируем ошибки
+        
         if (!ModelState.IsValid)
         {
             foreach (var error in ModelState)

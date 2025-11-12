@@ -13,13 +13,13 @@ public static class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        // Create roles
+        
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
         }
 
-        // Create admin user
+        
         if (await userManager.FindByEmailAsync("admin@cinema.com") == null)
         {
             var admin = new ApplicationUser
@@ -33,7 +33,7 @@ public static class SeedData
             await userManager.AddToRoleAsync(admin, "Admin");
         }
 
-        // Seed movies
+        
         if (!await context.Movies.AnyAsync())
         {
             var movies = new[]
@@ -44,7 +44,7 @@ public static class SeedData
                     Description = "Хакер Нео узнает, что реальный мир — это компьютерная симуляция под названием Матрица.",
                     Genre = "Фантастика",
                     Duration = 136,
-                    PosterUrl = "https://via.placeholder.com/300x450?text=Матрица",
+                    PosterUrl = "https:",
                     IsActive = true
                 },
                 new Movie
@@ -53,7 +53,7 @@ public static class SeedData
                     Description = "Профессиональный вор Доминик Кобб крадет секреты из подсознания людей во время сна.",
                     Genre = "Триллер",
                     Duration = 148,
-                    PosterUrl = "https://via.placeholder.com/300x450?text=Начало",
+                    PosterUrl = "https:",
                     IsActive = true
                 },
                 new Movie
@@ -62,14 +62,13 @@ public static class SeedData
                     Description = "Группа исследователей отправляется в космос через червоточину в поисках нового дома для человечества.",
                     Genre = "Фантастика",
                     Duration = 169,
-                    PosterUrl = "https://via.placeholder.com/300x450?text=Интерстеллар",
+                    PosterUrl = "https:",
                     IsActive = true
                 }
             };
             await context.Movies.AddRangeAsync(movies);
         }
 
-        // Seed halls
         if (!await context.Halls.AnyAsync())
         {
             var hall1 = new Hall { Name = "Зал 1", Rows = 10, SeatsPerRow = 15 };
@@ -78,7 +77,6 @@ public static class SeedData
             await context.Halls.AddRangeAsync(hall1, hall2);
             await context.SaveChangesAsync();
 
-            // Create seats for hall1
             var seats1 = new List<Seat>();
             for (int row = 1; row <= hall1.Rows; row++)
             {
@@ -88,7 +86,6 @@ public static class SeedData
                 }
             }
 
-            // Create seats for hall2
             var seats2 = new List<Seat>();
             for (int row = 1; row <= hall2.Rows; row++)
             {

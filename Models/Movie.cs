@@ -6,7 +6,7 @@ public class Movie
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Genre { get; set; } = string.Empty;
-    public int Duration { get; set; } // в минутах
+    public int Duration { get; set; }
     public string? PosterUrl { get; set; }
     public string? TrailerUrl { get; set; }
     public bool IsActive { get; set; } = true;
