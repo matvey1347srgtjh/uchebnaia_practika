@@ -57,17 +57,22 @@ public class TicketRepository : ITicketRepository
         }
     }
 
-    public async Task<IEnumerable<Ticket>> GetTicketsByUserIdAsync(string userId)
-    {
-        return await _context.Tickets
-            .Include(t => t.Session)
-            .ThenInclude(s => s.Movie)
-            .Include(t => t.Session)
-            .ThenInclude(s => s.Hall)
-            .Where(t => t.UserId == userId && t.Status == TicketStatus.Sold)
-            .OrderByDescending(t => t.PurchaseDate)
-            .ToListAsync();
-    }
+   // Файл: TicketRepository.cs
+
+public async Task<IEnumerable<Ticket>> GetTicketsByUserIdAsync(string userId)
+{
+    return await _context.Tickets
+        .Include(t => t.Session)
+        .ThenInclude(s => s.Movie)
+        .Include(t => t.Session)
+        .ThenInclude(s => s.Hall)
+        .Where(t => t.UserId == userId && 
+                (t.Status == TicketStatus.Sold || 
+                t.Status == TicketStatus.Reserved))
+                     
+        .OrderByDescending(t => t.PurchaseDate)
+        .ToListAsync();
+}
 
     public async Task<Ticket?> GetTicketByCodeAsync(string ticketCode)
     {

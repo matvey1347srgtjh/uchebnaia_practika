@@ -41,6 +41,89 @@
         </div>
     </div>
 
+    @* ------------------------------------------------------------------------------------------------------ *@
+    @* --- НОВАЯ СЕКЦИЯ: ЗАБРОНИРОВАННЫЕ БИЛЕТЫ --- *@
+    @* ------------------------------------------------------------------------------------------------------ *@
+    
+    <div class="mt-5">
+        <h4 class="mb-4">
+            <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
+                ⏳ Забронированные билеты
+            </span>
+        </h4>
+        @if (Model.ReservedTickets.Any())
+        {
+            @* Группируем билеты по SessionId, чтобы оплачивать всю бронь целиком *@
+          
+                var groupedReservedTickets = Model.ReservedTickets
+                    .GroupBy(t => t.Session.Id)
+                    .OrderBy(g => g.First().Session.DateTime);
+            
+
+            <div class="row g-3">
+                @foreach (var group in groupedReservedTickets)
+                {
+                    var firstTicket = group.First();
+                    // Собираем все ID билетов в этой группе для передачи в функцию оплаты
+                    var allTicketsInGroup = string.Join(",", group.Select(t => t.Id));
+                    var totalTickets = group.Count();
+                    var totalPrice = group.Sum(t => t.Price);
+
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-warning" style="border-radius: 15px;">
+                            <div class="card-body">
+                                <h5 class="mb-3 text-warning">🎬 @firstTicket.Session.Movie.Title <span class="badge bg-danger ms-2">БРОНЬ</span></h5>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">🕐 Дата и время:</small><br>
+                                    <strong>@firstTicket.Session.DateTime.ToString("dd.MM.yyyy HH:mm")</strong>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">📍 Зал:</small><br>
+                                    <strong>@firstTicket.Session.Hall.Name</strong>
+                                </div>
+                                
+                                <h6 class="mt-3 mb-2">🪑 Ваши места:</h6>
+                                <p class="text-break" style="font-size: 0.9rem;">
+                                    @foreach (var ticket in group.OrderBy(t => t.Row).ThenBy(t => t.SeatNumber))
+                                    {
+                                        <span class="badge bg-secondary me-1 mb-1">Ряд @ticket.Row, Место @ticket.SeatNumber</span>
+                                    }
+                                </p>
+
+                                <div class="alert alert-warning text-center mt-3 p-2">
+                                    <strong>Итого: @totalTickets мест, @totalPrice.ToString("0.00") ₽</strong>
+                                </div>
+
+                                <button type="button" 
+                                        class="btn btn-success w-100"
+                                        data-ticket-ids="@allTicketsInGroup"
+                                        onclick="confirmPaymentFromProfile(this)">
+                                    💳 Оплатить (@totalPrice.ToString("0.00") ₽)
+                                </button>
+                                
+                                <small class="text-muted d-block text-center mt-2">
+                                    Бронь активна в течение ограниченного времени.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-secondary text-center">
+                <h5>⏳ Нет активных бронирований.</h5>
+                <p class="mb-0">Начните с просмотра <a href="@Url.Action("Index", "Home")" style="color: var(--secondary-color);">фильмов в прокате</a>!</p>
+            </div>
+        }
+    </div>
+    
+    @* ------------------------------------------------------------------------------------------------------ *@
+    @* --- Секция КУПЛЕННЫЕ БИЛЕТЫ (Ваш оригинальный код) --- *@
+    @* ------------------------------------------------------------------------------------------------------ *@
+
     <div class="mt-5">
         <h4 class="mb-4">
             <span style="border-left: 4px solid var(--primary-color); padding-left: 1rem;">
@@ -90,3 +173,66 @@
         }
     </div>
 </div>
+
+@* ------------------------------------------------------------------------------------------------------ *@
+@* --- СКРИПТЫ: Функция оплаты (копирование логики с SelectSeats) --- *@
+@* ------------------------------------------------------------------------------------------------------ *@
+@section Scripts {
+    <script>
+        async function confirmPaymentFromProfile(buttonElement) {
+            const ticketIdsStr = buttonElement.getAttribute('data-ticket-ids');
+            if (!ticketIdsStr) {
+                alert('Нет ID билетов для оплаты');
+                return;
+            }
+
+            // Блокируем кнопку и меняем текст
+            const initialText = buttonElement.textContent;
+            buttonElement.disabled = true;
+            buttonElement.textContent = 'Обработка...';
+
+            // Преобразуем строку ID в массив чисел
+            const ticketIds = ticketIdsStr.split(',').map(id => parseInt(id));
+
+            try {
+                // Вызываем тот же метод контроллера, что и на странице выбора мест
+                const response = await fetch('/Booking/ConfirmPayment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(ticketIds)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Оплата успешно подтверждена! Билет сгенерирован.');
+                    // Перенаправление на страницу первого оплаченного билета
+                    if (result.tickets && result.tickets.length > 0) {
+                        window.location.href = `/Booking/Ticket/${result.tickets[0].id}`;
+                    } else {
+                        // Если билеты не вернулись, обновляем профиль
+                        window.location.href = '/Account/Profile';
+                    }
+                } else {
+                    alert('❌ ' + (result.message || 'Ошибка при подтверждении оплаты.'));
+                    
+                    // Возвращаем кнопку в исходное состояние
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = initialText;
+                    
+                    // Обновляем страницу, если бронь истекла
+                    if (result.message && (result.message.includes('истекла') || result.message.includes('не найдена'))) {
+                         window.location.reload();
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Произошла ошибка при оплате.');
+                buttonElement.disabled = false;
+                buttonElement.textContent = initialText;
+            }
+        }
+    </script>
+}

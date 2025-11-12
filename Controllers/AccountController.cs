@@ -64,7 +64,7 @@ public class AccountController : Controller
         ViewData["ReturnUrl"] = returnUrl;
         return View();
     }
-
+    
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
@@ -95,25 +95,40 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    [Authorize]
-    public async Task<IActionResult> Profile()
+ [Authorize]
+public async Task<IActionResult> Profile()
+{
+    var user = await _userManager.GetUserAsync(User);
+    if (user == null)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        var tickets = await _ticketRepository.GetTicketsByUserIdAsync(user.Id);
-
-        var viewModel = new ProfileViewModel
-        {
-            User = user,
-            Tickets = tickets.ToList()
-        };
-
-        return View(viewModel);
+        return NotFound();
     }
+
+    
+    var allTickets = await _ticketRepository.GetTicketsByUserIdAsync(user.Id);
+
+    
+    var viewModel = new ProfileViewModel
+    {
+        User = user,
+        
+        
+        Tickets = allTickets
+            .Where(t => t.Status == TicketStatus.Sold)
+            .OrderByDescending(t => t.PurchaseDate)
+            .ToList(),
+            
+        
+        ReservedTickets = allTickets
+            .Where(t => t.Status == TicketStatus.Reserved && 
+                        t.ReservedUntil.HasValue && 
+                        t.ReservedUntil.Value > DateTime.Now) 
+            .OrderBy(t => t.ReservedUntil) 
+            .ToList()
+    };
+
+    return View(viewModel);
+}
 
     [Authorize]
     [HttpGet]
