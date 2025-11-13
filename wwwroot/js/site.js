@@ -266,6 +266,280 @@
     });
 })();
 
+// Hero trailer slider
+(function () {
+    const hero = document.querySelector('.kp-hero');
+    if (!hero) {
+        return;
+    }
+
+    const slides = hero.querySelectorAll('.kp-hero__slide');
+    const bullets = hero.querySelectorAll('.kp-hero__bullet');
+    const prevButton = hero.querySelector('.kp-hero__arrow--prev');
+    const nextButton = hero.querySelector('.kp-hero__arrow--next');
+
+    if (!slides.length) {
+        return;
+    }
+
+    let currentIndex = 0;
+    const videos = Array.from(hero.querySelectorAll('[data-hero-video]'));
+    const volumeSliders = Array.from(hero.querySelectorAll('.kp-hero__volume'));
+    let soundEnabled = false;
+    let currentVolume = 0.2;
+    let playbackPaused = false;
+    let userPaused = false;
+
+    const pauseAllVideos = () => {
+        videos.forEach(video => {
+            video.pause();
+            video.currentTime = 0;
+            video.muted = true;
+        });
+    };
+
+    const playActiveVideo = (index) => {
+        const activeSlide = slides[index];
+        if (!activeSlide) {
+            return;
+        }
+
+        const video = activeSlide.querySelector('[data-hero-video]');
+        if (!video) {
+            return;
+        }
+
+        if (playbackPaused) {
+            video.pause();
+            return;
+        }
+
+        video.muted = !soundEnabled;
+        video.volume = soundEnabled ? currentVolume : 0;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.catch(() => {
+                // Autoplay might be blocked; fail silently
+            });
+        }
+    };
+
+    const setActiveSlide = (index, manualChange = false) => {
+        if (index === currentIndex || index < 0 || index >= slides.length) {
+            return;
+        }
+
+        slides[currentIndex].classList.remove('is-active');
+        slides[currentIndex].setAttribute('aria-hidden', 'true');
+        bullets[currentIndex]?.classList.remove('is-active');
+        bullets[currentIndex]?.setAttribute('aria-selected', 'false');
+
+        pauseAllVideos();
+
+        if (manualChange && !userPaused) {
+            playbackPaused = false;
+        }
+
+        currentIndex = index;
+        slides[currentIndex].classList.add('is-active');
+        slides[currentIndex].setAttribute('aria-hidden', 'false');
+        bullets[currentIndex]?.classList.add('is-active');
+        bullets[currentIndex]?.setAttribute('aria-selected', 'true');
+
+        applySoundState();
+        updatePlayButtons();
+        playActiveVideo(currentIndex);
+    };
+
+    const moveToNext = (manualChange = false) => {
+        const nextIndex = (currentIndex + 1) % slides.length;
+        setActiveSlide(nextIndex, manualChange);
+    };
+
+    const moveToPrev = (manualChange = false) => {
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        setActiveSlide(prevIndex, manualChange);
+    };
+
+    bullets.forEach((bullet, index) => {
+        bullet.addEventListener('click', () => {
+            setActiveSlide(index, true);
+        });
+    });
+
+    prevButton?.addEventListener('click', () => {
+        moveToPrev(true);
+    });
+
+    nextButton?.addEventListener('click', () => {
+        moveToNext(true);
+    });
+
+    const applySoundState = () => {
+        videos.forEach(video => {
+            video.muted = true;
+            video.volume = currentVolume;
+        });
+        const activeSlide = slides[currentIndex];
+        const video = activeSlide?.querySelector('[data-hero-video]');
+        if (video) {
+            video.muted = !soundEnabled;
+            video.volume = soundEnabled ? currentVolume : 0;
+        }
+        updateSoundButtons();
+        updateVolumeSliders();
+    };
+
+    const updateSoundButtons = () => {
+        slides.forEach((slide, idx) => {
+            const button = slide.querySelector('.kp-hero__sound-toggle');
+            if (!button) {
+                return;
+            }
+            const icon = button.querySelector('i');
+            const isActive = idx === currentIndex && soundEnabled;
+            button.classList.toggle('is-active', isActive);
+            button.setAttribute('aria-label', isActive ? 'Выключить звук' : 'Включить звук');
+            if (icon) {
+                icon.classList.toggle('bi-volume-up-fill', isActive);
+                icon.classList.toggle('bi-volume-mute-fill', !isActive);
+            }
+        });
+    };
+
+    const updatePlayButtons = () => {
+        slides.forEach((slide, idx) => {
+            const button = slide.querySelector('.kp-hero__play-toggle');
+            if (!button) {
+                return;
+            }
+            const icon = button.querySelector('i');
+            const isPlaying = idx === currentIndex && !playbackPaused;
+            button.classList.toggle('is-playing', isPlaying);
+            button.setAttribute('aria-label', isPlaying ? 'Поставить на паузу' : 'Воспроизвести трейлер');
+            if (icon) {
+                icon.classList.toggle('bi-pause-fill', isPlaying);
+                icon.classList.toggle('bi-play-fill', !isPlaying);
+            }
+        });
+    };
+
+    const updateVolumeSliders = () => {
+        volumeSliders.forEach(slider => {
+            const slideIndex = parseInt(slider.dataset.slideVolume || '-1', 10);
+            if (Number.isInteger(slideIndex)) {
+                slider.value = currentVolume.toString();
+            }
+            slider.disabled = !soundEnabled;
+            slider.classList.toggle('is-disabled', !soundEnabled);
+
+            const wrapper = slider.parentElement;
+            if (wrapper) {
+                wrapper.classList.toggle('is-disabled', !soundEnabled);
+            }
+            const track = wrapper?.querySelector('.kp-hero__volume-track');
+            if (track) {
+                track.style.transform = `scaleX(${soundEnabled ? currentVolume : 0})`;
+            }
+        });
+    };
+
+    hero.addEventListener('click', (event) => {
+        const playButton = event.target.closest('.kp-hero__play-toggle');
+        if (playButton && hero.contains(playButton)) {
+            event.preventDefault();
+            const activeSlide = slides[currentIndex];
+            const video = activeSlide?.querySelector('[data-hero-video]');
+            if (!video) {
+                return;
+            }
+
+            if (playbackPaused) {
+                playbackPaused = false;
+                userPaused = false;
+                playActiveVideo(currentIndex);
+            } else {
+                playbackPaused = true;
+                userPaused = true;
+                video.pause();
+            }
+
+            updatePlayButtons();
+            return;
+        }
+
+        const button = event.target.closest('.kp-hero__sound-toggle');
+        if (!button || !hero.contains(button)) {
+            return;
+        }
+        event.preventDefault();
+
+        const activeSlide = slides[currentIndex];
+        const video = activeSlide?.querySelector('[data-hero-video]');
+        if (!video) {
+            return;
+        }
+
+        soundEnabled = !soundEnabled;
+        applySoundState();
+
+        if (soundEnabled && !playbackPaused) {
+            video.currentTime = Math.max(0, video.currentTime);
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(() => {});
+            }
+        }
+    });
+
+    volumeSliders.forEach(slider => {
+        slider.addEventListener('input', (event) => {
+            const target = event.target;
+            const newValue = parseFloat(target.value);
+            if (Number.isFinite(newValue)) {
+                currentVolume = Math.max(0, Math.min(1, newValue));
+                const activeSlide = slides[currentIndex];
+                const video = activeSlide?.querySelector('[data-hero-video]');
+                if (video) {
+                    video.volume = soundEnabled && !playbackPaused ? currentVolume : 0;
+                }
+
+                const track = target.parentElement?.querySelector('.kp-hero__volume-track');
+                if (track) {
+                    track.style.transform = `scaleX(${soundEnabled ? currentVolume : 0})`;
+                }
+            }
+        });
+    });
+
+    videos.forEach(video => {
+        video.addEventListener('ended', () => {
+            playbackPaused = true;
+            userPaused = false;
+            video.pause();
+            video.currentTime = 0;
+            applySoundState();
+            updatePlayButtons();
+        });
+    });
+
+    slides.forEach((slide, index) => {
+        slide.id = slide.id || `kp-hero-slide-${index}`;
+        if (index === 0) {
+            slide.classList.add('is-active');
+            slide.setAttribute('aria-hidden', 'false');
+        } else {
+            slide.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    pauseAllVideos();
+    applySoundState();
+    updatePlayButtons();
+    playActiveVideo(currentIndex);
+    updateVolumeSliders();
+})();
+
 // Search filter panel
 (function () {
     const searchForm = document.querySelector('.kp-search');

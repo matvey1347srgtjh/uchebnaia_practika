@@ -64,6 +64,7 @@
    cd CinemaApp
    dotnet restore
    dotnet build
+   dotnet ef database update
    dotnet run
    ```
 5. Откройте браузер и перейдите по адресу `https://localhost:5001` или `http://localhost:5000`

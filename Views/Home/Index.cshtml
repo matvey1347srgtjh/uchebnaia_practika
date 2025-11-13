@@ -8,6 +8,113 @@
     int? selectedMinDuration = ViewData["MinDuration"] as int?;
     int? selectedMaxDuration = ViewData["MaxDuration"] as int?;
     var hasFilters = !string.IsNullOrWhiteSpace(selectedGenre) || selectedMinDuration.HasValue || selectedMaxDuration.HasValue;
+    var movies = Model?.ToList() ?? new List<CinemaApp.Models.Movie>();
+    var featuredMovies = movies.Take(5).ToList();
+}
+
+@if (!hasSearch && featuredMovies.Any())
+{
+    <section class="kp-hero fade-in">
+        <div class="kp-hero__slides" data-autoplay="6000">
+            @for (var i = 0; i < featuredMovies.Count; i++)
+            {
+                var movie = featuredMovies[i];
+                var isActive = i == 0;
+                var hasTrailer = !string.IsNullOrWhiteSpace(movie.TrailerUrl);
+                var hasPoster = !string.IsNullOrWhiteSpace(movie.PosterUrl);
+                var description = movie.Description.Length > 220
+                    ? movie.Description.Substring(0, 220) + "..."
+                    : movie.Description;
+
+                <article id="kp-hero-slide-@i" class="kp-hero__slide @(isActive ? "is-active" : string.Empty)" data-slide-index="@i">
+                    <div class="kp-hero__content">
+                        <div class="kp-hero__tag">Сейчас в прокате</div>
+                        <h2 class="kp-hero__title">@movie.Title</h2>
+                        <div class="kp-hero__meta">
+                            <span>@movie.Genre</span>
+                            <span>•</span>
+                            <span>@movie.Duration мин</span>
+                        </div>
+                        <p class="kp-hero__description">@description</p>
+                        <div class="kp-hero__actions">
+                            <a href="@Url.Action("Details", "Movies", new { id = movie.Id })" class="btn btn-primary btn-lg">
+                                Подробнее
+                            </a>
+                        </div>
+                    </div>
+                    <div class="kp-hero__media">
+                        <div class="kp-hero__media-frame">
+                            @if (hasTrailer)
+                            {
+                                <video class="kp-hero__video" playsinline muted preload="metadata" data-hero-video>
+                                    <source src="@Url.Content($"~/videos/{movie.TrailerUrl}")" type="video/mp4" />
+                                </video>
+                            }
+                            else if (hasPoster)
+                            {
+                                <img src="@movie.PosterUrl" alt="@movie.Title" class="kp-hero__poster" />
+                            }
+                            else
+                            {
+                                <div class="kp-hero__poster kp-hero__poster--fallback">
+                                    <span>@movie.Title.FirstOrDefault()</span>
+                                </div>
+                            }
+                        </div>
+                        @if (hasTrailer)
+                        {
+                            <div class="kp-hero__controls" data-slide-controls="@i">
+                                <button type="button"
+                                        class="kp-hero__play-toggle"
+                                        aria-label="Поставить на паузу"
+                                        data-slide-play="@i">
+                                    <i class="bi bi-pause-fill" aria-hidden="true"></i>
+                                </button>
+                                <button type="button"
+                                        class="kp-hero__sound-toggle"
+                                        aria-label="Включить звук"
+                                        data-slide-sound="@i">
+                                    <i class="bi bi-volume-mute-fill" aria-hidden="true"></i>
+                                </button>
+                                <div class="kp-hero__volume-wrapper">
+                                    <span class="kp-hero__volume-track" aria-hidden="true"></span>
+                                    <input type="range"
+                                           min="0"
+                                           max="1"
+                                           step="0.05"
+                                           value="0.2"
+                                           class="kp-hero__volume"
+                                           aria-label="Громкость трейлера"
+                                           data-slide-volume="@i" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+        <div class="kp-hero__nav">
+            <button type="button" class="kp-hero__arrow kp-hero__arrow--prev" aria-label="Предыдущий слайд">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="kp-hero__bullets" role="tablist" aria-label="Выбор слайда">
+                @for (var i = 0; i < featuredMovies.Count; i++)
+                {
+                    <button type="button"
+                            class="kp-hero__bullet @(i == 0 ? "is-active" : string.Empty)"
+                            data-target-index="@i"
+                            role="tab"
+                            aria-selected="@(i == 0 ? "true" : "false")"
+                            aria-controls="kp-hero-slide-@i">
+                        <span class="visually-hidden">Слайд @(i + 1)</span>
+                    </button>
+                }
+            </div>
+            <button type="button" class="kp-hero__arrow kp-hero__arrow--next" aria-label="Следующий слайд">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </section>
 }
 
 <div class="text-center mb-5 fade-in">
@@ -16,7 +123,7 @@
     <div style="height: 4px; width: 100px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); margin: 1rem auto; border-radius: 2px;"></div>
     @if (hasSearch)
     {
-        <p class="text">Вы искали: <strong>@searchQuery</strong>. Найдено фильмов: @Model.Count()</p>
+        <p class="text">Вы искали: <strong>@searchQuery</strong>. Найдено фильмов: @movies.Count</p>
     }
     @if (hasFilters)
     {
@@ -38,10 +145,10 @@
     }
 </div>
 
-@if (Model.Any())
+@if (movies.Any())
 {
     <div class="row g-4">
-        @foreach (var movie in Model)
+        @foreach (var movie in movies)
         {
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="movie-card">
