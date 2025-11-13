@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Session> Sessions { get; set; }
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<Seat> Seats { get; set; }
+    public DbSet<HeroSlide> HeroSlides { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -36,6 +37,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasMany(m => m.Sessions)
                 .WithOne(s => s.Movie)
                 .OnDelete(DeleteBehavior.Cascade); 
+
+            entity.HasMany(m => m.HeroSlides)
+                .WithOne(s => s.Movie)
+                .HasForeignKey(s => s.MovieId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         
@@ -95,6 +101,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.HallId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.HallId, e.Row, e.Number }).IsUnique();
+        });
+
+        builder.Entity<HeroSlide>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ButtonText).HasMaxLength(40).HasDefaultValue("Подробнее");
+            entity.Property(e => e.Title).HasMaxLength(150);
+            entity.Property(e => e.Tagline).HasMaxLength(80);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.VideoPath).HasMaxLength(200);
+            entity.Property(e => e.PosterUrl).HasMaxLength(200);
+            entity.Property(e => e.ButtonUrl).HasMaxLength(200);
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
         });
     }
 }

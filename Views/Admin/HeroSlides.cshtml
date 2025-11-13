@@ -1,0 +1,131 @@
+@model IEnumerable<CinemaApp.Models.HeroSlide>
+
+@{
+    ViewData["Title"] = "Слайды главной страницы";
+}
+
+<div class="admin-page__header">
+    <div class="admin-page__heading">
+        <h1 class="mb-0">Слайды главной страницы</h1>
+        <p class="admin-page__subtitle">Управляйте геро-слайдером: добавляйте новые промо-блоки, меняйте порядок и активность.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="CreateHeroSlide">
+        <i class="bi bi-plus-lg me-2"></i>Добавить слайд
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="admin-empty text-center">
+        <div class="admin-empty__icon">🎬</div>
+        <h4 class="mb-2">Нет слайдов</h4>
+        <p class="admin-empty__text">Добавьте первый слайд, чтобы пользователи увидели актуальные промо-блоки на главной.</p>
+        <a class="btn btn-primary mt-3" asp-action="CreateHeroSlide">
+            <i class="bi bi-plus-lg me-2"></i>Создать слайд
+        </a>
+    </div>
+}
+else
+{
+    <div class="admin-table__wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">#</th>
+                    <th>Название</th>
+                    <th>Подзаголовок</th>
+                    <th>Фильм</th>
+                    <th>Видео</th>
+                    <th>Порядок</th>
+                    <th>Статус</th>
+                    <th class="text-end">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var index = 1;
+                }
+                @foreach (var slide in Model)
+                {
+                    <tr>
+                        <td>@index</td>
+                        <td>
+                            <div class="admin-table__title">
+                                <span>@(string.IsNullOrWhiteSpace(slide.Title) ? slide.Movie?.Title ?? "Без названия" : slide.Title)</span>
+                                @if (!string.IsNullOrWhiteSpace(slide.Description))
+                                {
+                                    <span class="admin-table__meta admin-table__meta--truncate">@slide.Description</span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="admin-badge">
+                                <i class="bi bi-megaphone"></i>
+                                @(string.IsNullOrWhiteSpace(slide.Tagline) ? "—" : slide.Tagline)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="admin-table__title">
+                                <span>@(slide.Movie?.Title ?? "—")</span>
+                                @if (slide.MovieId.HasValue)
+                                {
+                                    <span class="admin-table__meta">ID фильма: @slide.MovieId</span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(slide.VideoPath))
+                            {
+                                <span class="admin-badge admin-badge--positive">
+                                    <i class="bi bi-play-circle-fill"></i>
+                                    @slide.VideoPath
+                                </span>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(slide.Movie?.TrailerUrl))
+                            {
+                                <span class="admin-badge">
+                                    <i class="bi bi-collection-play"></i>
+                                    Трейлер фильма
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="admin-badge admin-badge--negative">
+                                    <i class="bi bi-slash-circle"></i>
+                                    Без видео
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            <span class="admin-badge">
+                                <i class="bi bi-list-ol"></i>
+                                @slide.DisplayOrder
+                            </span>
+                        </td>
+                        <td>
+                            <span class="admin-status @(slide.IsActive ? "admin-status--active" : "admin-status--inactive")">
+                                <i class="bi @(slide.IsActive ? "bi-check-circle-fill" : "bi-pause-circle")"></i>
+                                @(slide.IsActive ? "Активен" : "Выкл.")
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <div class="admin-table__actions">
+                                <a class="btn btn-outline-warning btn-sm" asp-action="EditHeroSlide" asp-route-id="@slide.Id">
+                                    <i class="bi bi-pencil-square me-1"></i>Редактировать
+                                </a>
+                                <form asp-action="DeleteHeroSlide" asp-route-id="@slide.Id" method="post" class="d-inline" onsubmit="return confirm('Удалить этот слайд?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-trash3 me-1"></i>Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    index++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+

@@ -1,0 +1,91 @@
+@model CinemaApp.Models.HeroSlide
+
+@{
+    var moviesSelectList = ViewBag.Movies as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
+    var trailerFiles = ViewData["TrailerFiles"] as IEnumerable<string> ?? Array.Empty<string>();
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label">Заголовок</label>
+            <input asp-for="Title" class="form-control" placeholder="Например, «Главная премьера недели»" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="Tagline" class="form-label">Подзаголовок</label>
+            <input asp-for="Tagline" class="form-control" placeholder="Например, «Сейчас в прокате»" />
+            <span asp-validation-for="Tagline" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">Описание</label>
+            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Короткое описание, которое будет показано слева от трейлера"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="MovieId" class="form-label">Привязанный фильм</label>
+            <select asp-for="MovieId" class="form-select" asp-items="moviesSelectList">
+                <option value="0">Не выбрано</option>
+            </select>
+            <div class="form-text">Если выбрать фильм, кнопка и постер подставятся автоматически (можно переопределить ниже).</div>
+            <span asp-validation-for="MovieId" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="PosterUrl" class="form-label">Постер (URL)</label>
+            <input asp-for="PosterUrl" class="form-control" placeholder="https://..." />
+            <div class="form-text">Если оставить пустым, будет использован постер выбранного фильма.</div>
+            <span asp-validation-for="PosterUrl" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="VideoPath" class="form-label">Видео-трейлер</label>
+            <input asp-for="VideoPath" class="form-control" list="hero-slide-trailers" placeholder="matrix.mp4 или https://..." />
+            <datalist id="hero-slide-trailers">
+                @foreach (var file in trailerFiles)
+                {
+                    <option value="@file"></option>
+                }
+            </datalist>
+            <div class="form-text">Если оставить пустым, будет использован трейлер из карточки фильма.</div>
+            <span asp-validation-for="VideoPath" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="ButtonText" class="form-label">Текст кнопки</label>
+            <input asp-for="ButtonText" class="form-control" placeholder="Подробнее" />
+            <span asp-validation-for="ButtonText" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="mb-3">
+            <label asp-for="ButtonUrl" class="form-label">Ссылка кнопки</label>
+            <input asp-for="ButtonUrl" class="form-control" placeholder="/Movies/Details/1" />
+            <div class="form-text">Если оставить пустым и выбран фильм, ссылка поведёт на страницу фильма.</div>
+            <span asp-validation-for="ButtonUrl" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="mb-3">
+            <label asp-for="DisplayOrder" class="form-label">Порядок отображения</label>
+            <input asp-for="DisplayOrder" class="form-control" type="number" min="0" />
+            <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-lg-3 d-flex align-items-center">
+        <div class="form-check form-switch mt-4">
+            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+            <label asp-for="IsActive" class="form-check-label">Активен</label>
+        </div>
+    </div>
+</div>
+

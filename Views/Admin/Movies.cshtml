@@ -2,56 +2,128 @@
 
 @{
     ViewData["Title"] = "Управление фильмами";
+    var movies = Model?.OrderByDescending(m => m.CreatedAt).ToList() ?? new List<CinemaApp.Models.Movie>();
+    var totalCount = movies.Count;
+    var activeCount = movies.Count(m => m.IsActive);
+    var inactiveCount = totalCount - activeCount;
+    var averageDuration = movies.Any() ? (int)Math.Round(movies.Average(m => m.Duration)) : 0;
+    var latestMovie = movies.FirstOrDefault();
+    var culture = new System.Globalization.CultureInfo("ru-RU");
 }
 
 <div class="fade-in">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-2">Управление фильмами</h2>
-            <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+    <div class="admin-page__header">
+        <div class="admin-page__heading">
+            <h1 class="mb-0">Каталог фильмов</h1>
+            <p class="admin-page__subtitle">
+                Управляйте афишей: обновляйте карточки, активируйте или архивируйте релизы. Здесь отображаются все фильмы, доступные для сеансов.
+            </p>
         </div>
         <a asp-action="CreateMovie" class="btn btn-primary">
-            ➕ Добавить фильм
+            <i class="bi bi-plus-lg me-2"></i>
+            Добавить фильм
         </a>
     </div>
 
-    @if (Model.Any())
+    @if (movies.Any())
     {
-        <div class="table-responsive">
-            <table class="table table-dark table-hover" style="border-radius: 10px; overflow: hidden;">
-                <thead style="background: var(--dark-surface-light);">
+        <div class="admin-stats">
+            <div class="admin-stats__card">
+                <div class="admin-stats__title">Всего фильмов</div>
+                <div class="admin-stats__value">@totalCount</div>
+                <div class="admin-stats__meta">@activeCount актив@(activeCount == 1 ? "ен" : "ных"), @inactiveCount в архиве</div>
+            </div>
+            <div class="admin-stats__card">
+                <div class="admin-stats__title">Средняя длительность</div>
+                <div class="admin-stats__value">
+                    @averageDuration<span class="fs-6">мин</span>
+                </div>
+                <div class="admin-stats__meta">Минимум @movies.Min(m => m.Duration) мин • максимум @movies.Max(m => m.Duration) мин</div>
+            </div>
+            <div class="admin-stats__card">
+                <div class="admin-stats__title">Последнее обновление</div>
+                <div class="admin-stats__value">
+                    @(latestMovie?.CreatedAt.ToString("dd MMM", culture) ?? "—")
+                </div>
+                <div class="admin-stats__meta">
+                    @(latestMovie != null ? latestMovie.Title : "Нет новых фильмов")
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table__wrapper">
+            <table class="admin-table">
+                <thead>
                     <tr>
-                        <th>Название</th>
+                        <th>Фильм</th>
                         <th>Жанр</th>
-                        <th>Продолжительность</th>
-                        <th>Активен</th>
-                        <th>Действия</th>
+                        <th>Длительность</th>
+                        <th>Медиа</th>
+                        <th>Статус</th>
+                        <th class="text-end">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in Model)
+                    @foreach (var movie in movies)
                     {
+                        var hasPoster = !string.IsNullOrWhiteSpace(movie.PosterUrl);
+                        var hasTrailer = !string.IsNullOrWhiteSpace(movie.TrailerUrl);
                         <tr>
-                            <td><strong>@item.Title</strong></td>
                             <td>
-                                <span class="badge" style="background: rgba(255,255,255,0.2);">@item.Genre</span>
-                            </td>
-                            <td>@item.Duration мин</td>
-                            <td>
-                                @if (item.IsActive)
-                                {
-                                    <span class="badge" style="background: linear-gradient(135deg, #28a745, #20c997);">✓ Да</span>
-                                }
-                                else
-                                {
-                                    <span class="badge" style="background: rgba(255,255,255,0.2);">✗ Нет</span>
-                                }
+                                <div class="admin-table__title">
+                                    <span>@movie.Title</span>
+                                    <span class="admin-table__meta">
+                                        Добавлен @movie.CreatedAt.ToString("dd MMMM yyyy", culture)
+                                    </span>
+                                </div>
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a asp-action="EditMovie" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Редактировать</a>
-                                    <form asp-action="DeleteMovie" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот фильм?');">
-                                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Удалить</button>
+                                <span class="admin-badge">
+                                    <i class="bi bi-collection-play"></i>
+                                    @(string.IsNullOrWhiteSpace(movie.Genre) ? "Не указан" : movie.Genre)
+                                </span>
+                            </td>
+                            <td>
+                                <div class="admin-media">
+                                    <i class="bi bi-clock-history"></i>
+                                    @movie.Duration<span class="ms-1">мин</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="admin-badge @(hasPoster ? "admin-badge--positive" : "admin-badge--negative")">
+                                        <i class="bi bi-image"></i>
+                                        @(hasPoster ? "Постер есть" : "Нет постера")
+                                    </span>
+                                    <span class="admin-badge @(hasTrailer ? "admin-badge--positive" : "admin-badge--negative")">
+                                        <i class="bi @(hasTrailer ? "bi-play-circle-fill" : "bi-pause-circle")"></i>
+                                        @(hasTrailer ? "Трейлер подключен" : "Без трейлера")
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="admin-status @(movie.IsActive ? "admin-status--active" : "admin-status--inactive")">
+                                    <i class="bi @(movie.IsActive ? "bi-check-circle-fill" : "bi-dash-circle")"></i>
+                                    @(movie.IsActive ? "В прокате" : "Архив")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="admin-table__actions">
+                                    <a asp-action="EditMovie"
+                                       asp-route-id="@movie.Id"
+                                       class="btn btn-outline-warning btn-sm">
+                                        <i class="bi bi-pencil-square me-1"></i>
+                                        Редактировать
+                                    </a>
+                                    <form asp-action="DeleteMovie"
+                                          asp-route-id="@movie.Id"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Удалить фильм «@movie.Title»?');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash3 me-1"></i>
+                                            Удалить
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -63,9 +135,14 @@
     }
     else
     {
-        <div class="alert alert-info text-center">
-            <h5>📽️ Нет фильмов</h5>
-            <p class="mb-0">Начните с добавления первого фильма!</p>
+        <div class="admin-empty text-center">
+            <div class="admin-empty__icon">🍿</div>
+            <h4 class="mb-2">Каталог пуст</h4>
+            <p class="admin-empty__text">Добавьте первый фильм, чтобы начать формировать расписание и афишу.</p>
+            <a asp-action="CreateMovie" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-lg me-2"></i>
+                Создать фильм
+            </a>
         </div>
     }
 </div>

@@ -156,6 +156,7 @@
                                     {
                                         <li><hr class="dropdown-divider" /></li>
                                         <li class="dropdown-header">Администрирование</li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="HeroSlides">Главный слайдер</a></li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Movies">Фильмы</a></li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Halls">Залы</a></li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Sessions">Сеансы</a></li>
@@ -177,7 +178,7 @@
             </div>
         </div>
     </header>
-    <div class="container fade-in">
+    <div class="container fade-in kp-layout">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>

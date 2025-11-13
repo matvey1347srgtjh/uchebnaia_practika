@@ -1,4 +1,4 @@
-@model IEnumerable<CinemaApp.Models.Movie>
+@model CinemaApp.ViewModels.HomeIndexViewModel
 
 @{
     ViewData["Title"] = "Главная";
@@ -8,60 +8,102 @@
     int? selectedMinDuration = ViewData["MinDuration"] as int?;
     int? selectedMaxDuration = ViewData["MaxDuration"] as int?;
     var hasFilters = !string.IsNullOrWhiteSpace(selectedGenre) || selectedMinDuration.HasValue || selectedMaxDuration.HasValue;
-    var movies = Model?.ToList() ?? new List<CinemaApp.Models.Movie>();
-    var featuredMovies = movies.Take(5).ToList();
+    var movies = Model?.Movies ?? new List<CinemaApp.Models.Movie>();
+    var heroSlides = Model?.HeroSlides ?? new List<CinemaApp.Models.HeroSlide>();
+    var featuredSlides = heroSlides.Take(5).ToList();
 }
 
-@if (!hasSearch && featuredMovies.Any())
+@if (!hasSearch && featuredSlides.Any())
 {
     <section class="kp-hero fade-in">
         <div class="kp-hero__slides" data-autoplay="6000">
-            @for (var i = 0; i < featuredMovies.Count; i++)
+            @for (var i = 0; i < featuredSlides.Count; i++)
             {
-                var movie = featuredMovies[i];
+                var slide = featuredSlides[i];
+                var movie = slide.Movie;
                 var isActive = i == 0;
-                var hasTrailer = !string.IsNullOrWhiteSpace(movie.TrailerUrl);
-                var hasPoster = !string.IsNullOrWhiteSpace(movie.PosterUrl);
-                var description = movie.Description.Length > 220
-                    ? movie.Description.Substring(0, 220) + "..."
-                    : movie.Description;
+                var slideTitle = !string.IsNullOrWhiteSpace(slide.Title)
+                    ? slide.Title
+                    : (movie?.Title ?? "Анонс");
+                var slideTagline = !string.IsNullOrWhiteSpace(slide.Tagline)
+                    ? slide.Tagline
+                    : "Сейчас в прокате";
+                var baseDescription = !string.IsNullOrWhiteSpace(slide.Description)
+                    ? slide.Description
+                    : movie?.Description ?? string.Empty;
+                var description = baseDescription.Length > 220
+                    ? baseDescription.Substring(0, 220) + "..."
+                    : baseDescription;
+                var buttonText = !string.IsNullOrWhiteSpace(slide.ButtonText)
+                    ? slide.ButtonText
+                    : "Подробнее";
+                var buttonUrl = !string.IsNullOrWhiteSpace(slide.ButtonUrl)
+                    ? slide.ButtonUrl
+                    : (movie != null ? Url.Action("Details", "Movies", new { id = movie.Id }) : "#");
+
+                var videoFile = !string.IsNullOrWhiteSpace(slide.VideoPath)
+                    ? slide.VideoPath
+                    : movie?.TrailerUrl;
+                var videoSource = !string.IsNullOrWhiteSpace(videoFile)
+                    ? (videoFile.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? videoFile
+                        : Url.Content($"~/videos/{videoFile}"))
+                    : null;
+                var posterSource = !string.IsNullOrWhiteSpace(slide.PosterUrl)
+                    ? slide.PosterUrl
+                    : movie?.PosterUrl;
 
                 <article id="kp-hero-slide-@i" class="kp-hero__slide @(isActive ? "is-active" : string.Empty)" data-slide-index="@i">
                     <div class="kp-hero__content">
-                        <div class="kp-hero__tag">Сейчас в прокате</div>
-                        <h2 class="kp-hero__title">@movie.Title</h2>
-                        <div class="kp-hero__meta">
-                            <span>@movie.Genre</span>
-                            <span>•</span>
-                            <span>@movie.Duration мин</span>
-                        </div>
+                        <div class="kp-hero__tag">@slideTagline</div>
+                        <h2 class="kp-hero__title">@slideTitle</h2>
+                        @if (!string.IsNullOrWhiteSpace(movie?.Genre) || movie?.Duration > 0)
+                        {
+                            <div class="kp-hero__meta">
+                                @if (!string.IsNullOrWhiteSpace(movie?.Genre))
+                                {
+                                    <span>@movie.Genre</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(movie?.Genre) && movie?.Duration > 0)
+                                {
+                                    <span>•</span>
+                                }
+                                @if (movie?.Duration > 0)
+                                {
+                                    <span>@movie.Duration мин</span>
+                                }
+                            </div>
+                        }
                         <p class="kp-hero__description">@description</p>
-                        <div class="kp-hero__actions">
-                            <a href="@Url.Action("Details", "Movies", new { id = movie.Id })" class="btn btn-primary btn-lg">
-                                Подробнее
-                            </a>
-                        </div>
+                        @if (!string.IsNullOrWhiteSpace(buttonUrl))
+                        {
+                            <div class="kp-hero__actions">
+                                <a href="@buttonUrl" class="btn btn-primary btn-lg">
+                                    @buttonText
+                                </a>
+                            </div>
+                        }
                     </div>
                     <div class="kp-hero__media">
                         <div class="kp-hero__media-frame">
-                            @if (hasTrailer)
+                            @if (!string.IsNullOrWhiteSpace(videoSource))
                             {
                                 <video class="kp-hero__video" playsinline muted preload="metadata" data-hero-video>
-                                    <source src="@Url.Content($"~/videos/{movie.TrailerUrl}")" type="video/mp4" />
+                                    <source src="@videoSource" type="video/mp4" />
                                 </video>
                             }
-                            else if (hasPoster)
+                            else if (!string.IsNullOrWhiteSpace(posterSource))
                             {
-                                <img src="@movie.PosterUrl" alt="@movie.Title" class="kp-hero__poster" />
+                                <img src="@posterSource" alt="@slideTitle" class="kp-hero__poster" />
                             }
                             else
                             {
                                 <div class="kp-hero__poster kp-hero__poster--fallback">
-                                    <span>@movie.Title.FirstOrDefault()</span>
+                                    <span>@slideTitle.FirstOrDefault()</span>
                                 </div>
                             }
                         </div>
-                        @if (hasTrailer)
+                        @if (!string.IsNullOrWhiteSpace(videoSource))
                         {
                             <div class="kp-hero__controls" data-slide-controls="@i">
                                 <button type="button"
@@ -98,7 +140,7 @@
                 <i class="bi bi-chevron-left"></i>
             </button>
             <div class="kp-hero__bullets" role="tablist" aria-label="Выбор слайда">
-                @for (var i = 0; i < featuredMovies.Count; i++)
+                @for (var i = 0; i < featuredSlides.Count; i++)
                 {
                     <button type="button"
                             class="kp-hero__bullet @(i == 0 ? "is-active" : string.Empty)"

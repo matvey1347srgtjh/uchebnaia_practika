@@ -9,10 +9,15 @@ public class HomeController : Controller
 {
     private readonly IMovieRepository _movieRepository;
     private readonly ILogger<HomeController> _logger;
+    private readonly IHeroSlideRepository _heroSlideRepository;
 
-    public HomeController(IMovieRepository movieRepository, ILogger<HomeController> logger)
+    public HomeController(
+        IMovieRepository movieRepository,
+        IHeroSlideRepository heroSlideRepository,
+        ILogger<HomeController> logger)
     {
         _movieRepository = movieRepository;
+        _heroSlideRepository = heroSlideRepository;
         _logger = logger;
     }
 
@@ -34,12 +39,20 @@ public class HomeController : Controller
         }
 
         var movies = await _movieRepository.GetActiveMoviesAsync(query, genre, minDuration, maxDuration);
+        var heroSlides = await _heroSlideRepository.GetActiveAsync();
+
+        var model = new HomeIndexViewModel
+        {
+            Movies = movies.ToList(),
+            HeroSlides = heroSlides
+        };
+
         ViewData["SearchQuery"] = query;
         ViewData["SelectedGenre"] = genre;
         ViewData["MinDuration"] = minDuration;
         ViewData["MaxDuration"] = maxDuration;
         ViewData["Genres"] = await _movieRepository.GetGenresAsync();
-        return View(movies);
+        return View(model);
     }
 
     public IActionResult Privacy()

@@ -13,5 +13,6 @@ public class Movie
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
+    public virtual ICollection<HeroSlide> HeroSlides { get; set; } = new List<HeroSlide>();
 }
 

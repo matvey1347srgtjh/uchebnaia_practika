@@ -7,68 +7,138 @@
 }
 
 <div class="fade-in">
-    <div class="mb-4">
-        <h2 class="mb-2">Добавить фильм</h2>
-        <div style="height: 4px; width: 150px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 2px;"></div>
+    <div class="admin-page__header">
+        <div class="admin-page__heading">
+            <h1 class="mb-0">Добавить фильм</h1>
+            <p class="admin-page__subtitle">
+                Заполните карточку фильма, добавьте медиа-материалы и управляемые поля. Все данные можно отредактировать позднее.
+            </p>
+        </div>
+        <a asp-action="Movies" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left me-2"></i>
+            Вернуться к списку
+        </a>
     </div>
 
-    <div class="card" style="border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
-        <div class="card-body p-4">
-            <form asp-action="CreateMovie" method="post">
+    <div class="card admin-card">
+        <div class="card-body p-4 p-xl-5">
+            <form asp-action="CreateMovie" method="post" class="admin-form">
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label asp-for="Title" class="form-label"></label>
-                        <input asp-for="Title" class="form-control" placeholder="Название фильма" />
-                        <span asp-validation-for="Title" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <label asp-for="Genre" class="form-label"></label>
-                        <input asp-for="Genre" class="form-control" placeholder="Жанр" />
-                        <span asp-validation-for="Genre" class="text-danger"></span>
-                    </div>
-                </div>
 
-                <div class="mb-4">
-                    <label asp-for="Description" class="form-label"></label>
-                    <textarea asp-for="Description" class="form-control" rows="5" placeholder="Описание фильма"></textarea>
-                    <span asp-validation-for="Description" class="text-danger"></span>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label asp-for="Duration" class="form-label"></label>
-                        <input asp-for="Duration" class="form-control" type="number" placeholder="Продолжительность в минутах" />
-                        <span asp-validation-for="Duration" class="text-danger"></span>
+                <section class="admin-form__section" data-section-title="Основные данные">
+                    <div class="admin-form__grid admin-form__grid--two">
+                        <div>
+                            <div class="admin-field__label">
+                                <label asp-for="Title"></label>
+                                <span class="admin-counter" data-counter="title"></span>
+                            </div>
+                            <input asp-for="Title" class="form-control" placeholder="Например, «Интерстеллар»" maxlength="200" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                            <div class="admin-hint">Название отображается в афише и поиске. До 200 символов.</div>
+                        </div>
+                        <div>
+                            <div class="admin-field__label">
+                                <label asp-for="Genre"></label>
+                            </div>
+                            <input asp-for="Genre" class="form-control" placeholder="Фантастика, Триллер" maxlength="100" />
+                            <span asp-validation-for="Genre" class="text-danger"></span>
+                            <div class="admin-hint">Укажите основной жанр или несколько через запятую.</div>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-4">
-                        <label asp-for="PosterUrl" class="form-label"></label>
-                        <input asp-for="PosterUrl" class="form-control" placeholder="URL постера" />
-                        <span asp-validation-for="PosterUrl" class="text-danger"></span>
-                    </div>
-                </div>
 
-                <div class="mb-4">
-                    <label asp-for="TrailerUrl" class="form-label">Файл трейлера</label>
-                    <select asp-for="TrailerUrl" 
-                            class="form-select" 
-                            asp-items="@trailerList"> 
-                        <option value="">-- Не выбрано (Нет трейлера) --</option>
-                    </select>
-                    <span asp-validation-for="TrailerUrl" class="text-danger"></span>
-                    <small class="form-text text-muted">Список подгружается из папки "wwwroot/videos".</small>
-                </div>
-                <div class="mb-4">
-                    <div class="form-check">
-                        <input asp-for="IsActive" class="form-check-input" type="checkbox" />
-                        <label asp-for="IsActive" class="form-check-label">Активен (отображается в прокате)</label>
+                    <div>
+                        <div class="admin-field__label">
+                            <label asp-for="Description"></label>
+                            <span class="admin-counter" data-counter="description"></span>
+                        </div>
+                        <textarea asp-for="Description"
+                                  class="form-control"
+                                  rows="5"
+                                  maxlength="2000"
+                                  placeholder="Кратко о сюжете, героях и главной интриге..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                        <div class="admin-hint">Чем короче и выразительнее текст, тем лучше: пользователи видят первые 3–4 предложения.</div>
                     </div>
-                </div>
+                </section>
 
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">✅ Создать</button>
-                    <a asp-action="Movies" class="btn btn-secondary">❌ Отмена</a>
+                <section class="admin-form__section" data-section-title="Медиа">
+                    <div class="admin-form__grid admin-form__grid--two">
+                        <div>
+                            <div class="admin-field__label">
+                                <label asp-for="PosterUrl"></label>
+                            </div>
+                            <input asp-for="PosterUrl"
+                                   class="form-control"
+                                   placeholder="https://..."
+                                   inputmode="url" />
+                            <span asp-validation-for="PosterUrl" class="text-danger"></span>
+                            <div class="admin-hint">Поддерживаются ссылки на внешний постер или артефакт из CDN.</div>
+                        </div>
+
+                        <div>
+                            <div class="admin-field__label">
+                                <label asp-for="Duration"></label>
+                            </div>
+                            <input asp-for="Duration"
+                                   class="form-control"
+                                   type="number"
+                                   min="1"
+                                   max="600"
+                                   placeholder="Хронометраж в минутах" />
+                            <span asp-validation-for="Duration" class="text-danger"></span>
+                            <div class="admin-hint">Стандартные значения: 60–200 минут.</div>
+                        </div>
+                    </div>
+
+                    <div class="admin-form__grid admin-form__grid--two">
+                        <div>
+                            <div class="admin-field__label">
+                                <label asp-for="TrailerUrl">Файл трейлера</label>
+                            </div>
+                            <select asp-for="TrailerUrl"
+                                    class="form-select"
+                                    asp-items="@trailerList">
+                                <option value="">Без трейлера</option>
+                            </select>
+                            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+                            <div class="admin-trailer-hint" data-trailer-hint>
+                                <i class="bi bi-camera-reels"></i>
+                                Выберите ролик из папки <code>/wwwroot/videos</code>.
+                            </div>
+                        </div>
+
+                        <div class="admin-preview">
+                            <div class="admin-preview__poster" data-poster-preview>
+                                <span data-poster-fallback>Постер</span>
+                                <img src="" alt="Предпросмотр постера" class="d-none" data-poster-image />
+                            </div>
+                            <div class="admin-preview__note">
+                                Предпросмотр обновляется автоматически при вводе ссылки. Если изображение не отображается, проверьте, доступен ли URL.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-form__section" data-section-title="Публикация">
+                    <div class="admin-switch">
+                        <div class="admin-switch__text">
+                            <div class="admin-switch__title">Фильм в прокате</div>
+                            <div class="admin-switch__subtitle">Активные фильмы отображаются на главной и доступны при создании сеансов.</div>
+                        </div>
+                        <div class="form-check form-switch m-0">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                            <label asp-for="IsActive" class="form-check-label">Активировать сразу</label>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="admin-actions">
+                    <a asp-action="Movies" class="btn btn-secondary">
+                        Отмена
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Сохранить фильм
+                    </button>
                 </div>
             </form>
         </div>
@@ -77,4 +147,85 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (function () {
+            const titleInput = document.getElementById('Title');
+            const descriptionInput = document.getElementById('Description');
+            const titleCounter = document.querySelector('[data-counter="title"]');
+            const descriptionCounter = document.querySelector('[data-counter="description"]');
+            const posterInput = document.getElementById('PosterUrl');
+            const posterImage = document.querySelector('[data-poster-image]');
+            const posterFallback = document.querySelector('[data-poster-fallback]');
+            const posterWrapper = document.querySelector('[data-poster-preview]');
+            const trailerSelect = document.getElementById('TrailerUrl');
+            const trailerHint = document.querySelector('[data-trailer-hint]');
+
+            const formatCounter = (current, max) => `${current}/${max}`;
+
+            const updateCounter = (input, counter) => {
+                if (!input || !counter) {
+                    return;
+                }
+                const maxLength = input.getAttribute('maxlength');
+                counter.textContent = maxLength ? formatCounter(input.value.length, maxLength) : `${input.value.length}`;
+            };
+
+            const updatePosterPreview = () => {
+                if (!posterInput || !posterImage || !posterFallback || !posterWrapper) {
+                    return;
+                }
+                const url = posterInput.value?.trim();
+                if (!url) {
+                    posterImage.classList.add('d-none');
+                    posterImage.removeAttribute('src');
+                    posterFallback.classList.remove('d-none');
+                    posterWrapper.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                    return;
+                }
+                posterImage.src = url;
+                posterImage.onload = () => {
+                    posterImage.classList.remove('d-none');
+                    posterFallback.classList.add('d-none');
+                    posterWrapper.style.borderColor = 'rgba(229, 9, 20, 0.45)';
+                };
+                posterImage.onerror = () => {
+                    posterImage.classList.add('d-none');
+                    posterFallback.classList.remove('d-none');
+                    posterWrapper.style.borderColor = 'rgba(255, 69, 58, 0.45)';
+                };
+            };
+
+            const updateTrailerHint = () => {
+                if (!trailerSelect || !trailerHint) {
+                    return;
+                }
+                const value = trailerSelect.value?.trim();
+                if (!value) {
+                    trailerHint.innerHTML = '<i class="bi bi-camera-reels"></i> Выберите ролик из папки <code>/wwwroot/videos</code>.';
+                    return;
+                }
+                trailerHint.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Файл <strong>${value}</strong> будет подключён к карточке.`;
+            };
+
+            [titleInput, descriptionInput].forEach((input) => {
+                if (!input) {
+                    return;
+                }
+                const counter = input === titleInput ? titleCounter : descriptionCounter;
+                updateCounter(input, counter);
+                input.addEventListener('input', () => updateCounter(input, counter));
+            });
+
+            if (posterInput) {
+                posterInput.addEventListener('input', updatePosterPreview);
+                posterInput.addEventListener('blur', updatePosterPreview);
+                updatePosterPreview();
+            }
+
+            if (trailerSelect) {
+                trailerSelect.addEventListener('change', updateTrailerHint);
+                updateTrailerHint();
+            }
+        })();
+    </script>
 }
