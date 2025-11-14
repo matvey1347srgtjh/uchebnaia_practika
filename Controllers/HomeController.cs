@@ -1,6 +1,7 @@
 using CinemaApp.Repositories;
 using CinemaApp.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CinemaApp.Controllers;
@@ -38,20 +39,40 @@ public class HomeController : Controller
             (minDuration, maxDuration) = (maxDuration, minDuration);
         }
 
-        var movies = await _movieRepository.GetActiveMoviesAsync(query, genre, minDuration, maxDuration);
+        var movies = (await _movieRepository.GetActiveMoviesAsync(query, genre, minDuration, maxDuration)).ToList();
         var heroSlides = await _heroSlideRepository.GetActiveAsync();
 
         var model = new HomeIndexViewModel
         {
-            Movies = movies.ToList(),
+            Movies = movies,
             HeroSlides = heroSlides
         };
+
+        var chips = new List<string>();
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            chips.Add($"Поиск: {query.Trim()}");
+        }
+        if (!string.IsNullOrWhiteSpace(genre))
+        {
+            chips.Add($"Жанр: {genre.Trim()}");
+        }
+        if (minDuration.HasValue)
+        {
+            chips.Add($"От {minDuration.Value} мин");
+        }
+        if (maxDuration.HasValue)
+        {
+            chips.Add($"До {maxDuration.Value} мин");
+        }
 
         ViewData["SearchQuery"] = query;
         ViewData["SelectedGenre"] = genre;
         ViewData["MinDuration"] = minDuration;
         ViewData["MaxDuration"] = maxDuration;
         ViewData["Genres"] = await _movieRepository.GetGenresAsync();
+        ViewData["ResultsCount"] = movies.Count;
+        ViewData["FilterChips"] = chips;
         return View(model);
     }
 

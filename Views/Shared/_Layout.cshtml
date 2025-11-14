@@ -18,6 +18,8 @@
 </head>
 @using CinemaApp.Models
 @using Microsoft.AspNetCore.Identity
+@using System.Collections.Generic
+@using System.Linq
 @inject UserManager<ApplicationUser> UserManager
 @inject CinemaApp.Repositories.IMovieRepository MovieRepository
 @{
@@ -31,6 +33,20 @@
     string? selectedGenre = ViewData["SelectedGenre"] as string;
     string? minDurationValue = ViewData["MinDuration"]?.ToString();
     string? maxDurationValue = ViewData["MaxDuration"]?.ToString();
+    var filterChips = (ViewData["FilterChips"] as IEnumerable<string>)?.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).ToList() ?? new List<string>();
+    int? resultsCount = ViewData["ResultsCount"] as int?;
+    if (resultsCount is null && ViewData["ResultsCount"] is int rc)
+    {
+        resultsCount = rc;
+    }
+    var requestQueryValue = Context.Request.Query["query"].ToString();
+    bool hasSearchStatus = filterChips.Any();
+    if (!hasSearchStatus && !string.IsNullOrWhiteSpace(requestQueryValue))
+    {
+        filterChips.Add($"Поиск: {requestQueryValue.Trim()}");
+        hasSearchStatus = true;
+    }
+    string? searchStatusTitle = hasSearchStatus && resultsCount.HasValue ? $"Найдено: {resultsCount.Value}" : null;
 
     if (User.Identity?.IsAuthenticated == true)
     {
@@ -60,48 +76,60 @@
                 <a class="kp-nav-link" asp-controller="Home" asp-action="About">О нас</a>
             </div>
             <form class="kp-search" method="get" asp-area="" asp-controller="Home" asp-action="Index" autocomplete="off" data-suggestions-url="@Url.Action("SearchSuggestions", "Home")">
-                <input type="search" name="query" class="kp-search__input" placeholder="Фильмы, описание" autocomplete="off" value="@Context.Request.Query["query"]" />
-                <button type="button" class="kp-search__filter" title="Фильтры" aria-expanded="false">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                </button>
-                <button type="submit" class="kp-search__submit" title="Найти">
-                    <i class="bi bi-search"></i>
-                </button>
-                <div class="kp-search__suggestions d-none" id="searchSuggestions" role="listbox" aria-label="Подсказки поиска"></div>
-                <div class="kp-search__filters d-none" id="searchFilters">
-                    <div class="kp-search__filters-header">
-                        <div>
-                            <div class="kp-search__filters-title">Фильтры</div>
-                            <div class="kp-search__filters-subtitle">Уточните параметры поиска</div>
+                <div class="kp-search__main">
+                    <input type="search" name="query" class="kp-search__input" placeholder="Фильмы, описание" autocomplete="off" value="@Context.Request.Query["query"]" />
+                    <button type="button" class="kp-search__filter" title="Фильтры" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button type="submit" class="kp-search__submit" title="Найти">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    <div class="kp-search__suggestions d-none" id="searchSuggestions" role="listbox" aria-label="Подсказки поиска"></div>
+                    <div class="kp-search__filters d-none" id="searchFilters">
+                        <div class="kp-search__filters-header">
+                            <div>
+                                <div class="kp-search__filters-title">Фильтры</div>
+                                <div class="kp-search__filters-subtitle">Уточните параметры поиска</div>
+                            </div>
+                            <button type="button" class="kp-search__filters-close" aria-label="Закрыть фильтры">×</button>
                         </div>
-                        <button type="button" class="kp-search__filters-close" aria-label="Закрыть фильтры">×</button>
-                    </div>
-                    <div class="kp-search__filters-body">
-                        <div class="kp-search__filters-group">
-                            <label for="filter-genre">Жанр</label>
-                            <select id="filter-genre" name="genre" class="form-select">
-                                <option value="">Все жанры</option>
-                                @foreach (var genre in allGenres)
-                                {
-                                    <option value="@genre" selected="@(string.Equals(selectedGenre, genre, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@genre</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="kp-search__filters-group">
-                            <label>Длительность (мин)</label>
-                            <div class="kp-search__filters-range">
-                                <input type="number" name="minDuration" placeholder="От" value="@minDurationValue" min="0" class="form-control" />
-                                <span class="kp-search__filters-divider">—</span>
-                                <input type="number" name="maxDuration" placeholder="До" value="@maxDurationValue" min="0" class="form-control" />
+                        <div class="kp-search__filters-body">
+                            <div class="kp-search__filters-group">
+                                <label for="filter-genre">Жанр</label>
+                                <select id="filter-genre" name="genre" class="form-select">
+                                    <option value="">Все жанры</option>
+                                    @foreach (var genre in allGenres)
+                                    {
+                                        <option value="@genre" selected="@(string.Equals(selectedGenre, genre, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@genre</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="kp-search__filters-group">
+                                <label>Длительность (мин)</label>
+                                <div class="kp-search__filters-range">
+                                    <input type="number" name="minDuration" placeholder="От" value="@minDurationValue" min="0" class="form-control" />
+                                    <span class="kp-search__filters-divider">—</span>
+                                    <input type="number" name="maxDuration" placeholder="До" value="@maxDurationValue" min="0" class="form-control" />
+                                </div>
                             </div>
                         </div>
+                        <div class="kp-search__filters-actions">
+                            <button type="button" class="btn btn-outline-secondary kp-search__filters-clear">Сбросить</button>
+                            <button type="submit" class="btn btn-primary">Показать</button>
+                        </div>
                     </div>
-                    <div class="kp-search__filters-actions">
-                        <button type="button" class="btn btn-outline-secondary kp-search__filters-clear">Сбросить</button>
-                        <button type="submit" class="btn btn-primary">Показать</button>
-                    </div>
+                </div>
+                <div class="kp-search__status @(hasSearchStatus ? "is-visible" : string.Empty)" id="searchStatus">
+                    @if (!string.IsNullOrWhiteSpace(searchStatusTitle))
+                    {
+                        <span class="kp-search__status-title">@searchStatusTitle</span>
+                    }
+                    @foreach (var chip in filterChips)
+                    {
+                        <span class="kp-search__chip">@chip</span>
+                    }
                 </div>
             </form>
             <div class="kp-header__right">

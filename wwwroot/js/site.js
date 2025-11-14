@@ -574,6 +574,7 @@
 
     const filterButton = searchForm.querySelector('.kp-search__filter');
     const filterPanel = searchForm.querySelector('#searchFilters');
+    const statusContainer = document.getElementById('searchStatus');
     if (!filterButton || !filterPanel) {
         return;
     }
@@ -631,6 +632,10 @@
         if (maxInput) {
             maxInput.value = '';
         }
+        if (statusContainer) {
+            statusContainer.classList.remove('is-visible');
+        }
+        searchForm.classList.remove('kp-search--has-status');
         searchForm.submit();
     });
 })();

@@ -161,30 +161,8 @@
 
 <div class="text-center mb-5 fade-in">
     <h1 class="display-4 mb-3">Добро пожаловать в кинотеатр!</h1>
-    <p class="lead">🎬 @(hasSearch ? "Результаты поиска" : "Сейчас в прокате")</p>
+    <p class="lead">🎬 @(hasSearch || hasFilters ? $"Найдено фильмов: {movies.Count}" : "Сейчас в прокате")</p>
     <div style="height: 4px; width: 100px; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); margin: 1rem auto; border-radius: 2px;"></div>
-    @if (hasSearch)
-    {
-        <p class="text">Вы искали: <strong>@searchQuery</strong>. Найдено фильмов: @movies.Count</p>
-    }
-    @if (hasFilters)
-    {
-        <p class="text mb-0">
-            Фильтры:
-            @if (!string.IsNullOrWhiteSpace(selectedGenre))
-            {
-                <span>Жанр — <strong>@selectedGenre</strong></span>
-            }
-            @if (selectedMinDuration.HasValue)
-            {
-                <span>@(string.IsNullOrWhiteSpace(selectedGenre) ? string.Empty : ", ")Длительность от <strong>@selectedMinDuration</strong> мин</span>
-            }
-            @if (selectedMaxDuration.HasValue)
-            {
-                <span>@((!string.IsNullOrWhiteSpace(selectedGenre) || selectedMinDuration.HasValue) ? ", " : string.Empty)Длительность до <strong>@selectedMaxDuration</strong> мин</span>
-            }
-        </p>
-    }
 </div>
 
 @if (movies.Any())

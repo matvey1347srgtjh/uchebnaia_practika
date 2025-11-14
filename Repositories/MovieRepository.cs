@@ -56,6 +56,19 @@ public class MovieRepository : IMovieRepository
         }
     }
 
+    private static IEnumerable<string> SplitGenres(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        return value
+            .Split(new[] { ',', ';', '/', '|' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(g => g.Trim())
+            .Where(g => !string.IsNullOrWhiteSpace(g));
+    }
+
     public async Task<IEnumerable<Movie>> GetActiveMoviesAsync(string? searchQuery = null, string? genre = null, int? minDuration = null, int? maxDuration = null)
     {
         var movies = await _context.Movies
@@ -76,7 +89,8 @@ public class MovieRepository : IMovieRepository
         {
             var normalizedGenre = genre.Trim();
             movies = movies
-                .Where(m => ContainsInsensitive(m.Genre, normalizedGenre))
+                .Where(m => SplitGenres(m.Genre)
+                    .Any(g => g.Equals(normalizedGenre, StringComparison.CurrentCultureIgnoreCase)))
                 .ToList();
         }
 
@@ -137,12 +151,18 @@ public class MovieRepository : IMovieRepository
 
     public async Task<IReadOnlyList<string>> GetGenresAsync()
     {
-        return await _context.Movies
+        var rawGenres = await _context.Movies
             .Select(m => m.Genre)
-            .Where(g => !string.IsNullOrEmpty(g))
-            .Distinct()
-            .OrderBy(g => g)
+            .Where(g => !string.IsNullOrWhiteSpace(g))
             .ToListAsync();
+
+        return rawGenres
+            .SelectMany(SplitGenres)
+            .Select(g => g.Trim())
+            .Where(g => !string.IsNullOrWhiteSpace(g))
+            .Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
     }
 }
 
